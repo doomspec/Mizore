@@ -12,8 +12,8 @@ class LinearSysNode(CalcNode):
         self.A_mat.bind_to(A_mat)
         self.b_vec.bind_to(b_vec)
 
-    def calc(self, cache_key=None):
-        res = solve_linear_system(self.A_mat, self.b_vec, cache_key=cache_key)
+    def calc(self):
+        res = solve_linear_system(self.A_mat, self.b_vec)
         self.solution.bind_to(res)
 
     @property
@@ -31,9 +31,9 @@ class LinearSysNode(CalcNode):
     def __call__(self, *args, **kwargs):
         return self.outputs["Solution"]
 
-def get_linear_system_partials(A_mat: ValVar, b_vec: ValVar, cache_key=None):
-    A_mean = A_mat.mean.get_value(cache_key=cache_key)
-    b_mean = b_vec.mean.get_value(cache_key=cache_key)
+def get_linear_system_partials(A_mat: ValVar, b_vec: ValVar):
+    A_mean = A_mat.mean.get_value()
+    b_mean = b_vec.mean.get_value()
     dim = len(b_mean)
     assert len(A_mean) == dim
     A_mean_inv = np.linalg.pinv(A_mean)  # Get the pseudo inverse of A
@@ -50,15 +50,14 @@ def get_linear_system_partials(A_mat: ValVar, b_vec: ValVar, cache_key=None):
     return x_on_mean, x_partial_A, x_double_partial_A, x_partial_b
 
 
-def solve_linear_system(A_mat: ValVar, b_vec: ValVar, cache_key=None):
-    x_on_mean, x_partial_A, x_double_partial_A, x_partial_b = get_linear_system_partials(A_mat, b_vec,
-                                                                                         cache_key=cache_key)
+def solve_linear_system(A_mat: ValVar, b_vec: ValVar):
+    x_on_mean, x_partial_A, x_double_partial_A, x_partial_b = get_linear_system_partials(A_mat, b_vec)
     dim = len(x_partial_b)
 
     # We will calculate the shift of mean value and variance from the variance from A_mat and b_vec
 
-    A_var = A_mat.var.get_value(cache_key=cache_key)
-    b_var = b_vec.var.get_value(cache_key=cache_key)
+    A_var = A_mat.var.get_value()
+    b_var = b_vec.var.get_value()
 
     mean_shift = np.zeros(dim)
     for i in range(dim):

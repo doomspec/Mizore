@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import numbers
+import time
 from copy import copy
 from typing import Union, List, Iterable
 
 from mizore.comp_graph.comp_param import CompParam
 from mizore.utils.type_check import is_number
 
-from jax.numpy import abs
+from jax.numpy import abs, sqrt
 from jax.numpy.linalg import solve
 from jax import grad
 from mizore import jax_array
+from numpy.random import default_rng
+
 
 class ValVar:
     """
@@ -201,9 +204,8 @@ class ValVar:
         return ValVar(CompParam.unary_operator(self.mean, op), CompParam.unary_operator(self.var, op))
 
     @classmethod
-    def binary_operator(cls, valvar1: ValVar, valvar2: ValVar, op):
-        valvar_tuple = ValVar.tuple([valvar1, valvar2])
-        return (lambda arg: op(arg[0], arg[1])) | valvar_tuple
+    def binary_op(cls, valvar1: ValVar, valvar2: ValVar, op):
+        pass
 
     @classmethod
     def tuple(cls, valvars: List[ValVar]):
@@ -229,6 +231,18 @@ class ValVar:
         self.mean.show_value()
         print("Variance:")
         self.var.show_value()
+
+    sample_seed_shift = 0
+
+    def sample_gaussian(self, seed=None):
+        if seed is None:
+            rng = default_rng(int(time.time()*10000))
+        else:
+            rng = default_rng(seed * 5 + ValVar.sample_seed_shift * 11)
+            ValVar.sample_seed_shift += 1
+        sqrt_var_mat = sqrt(self.var.get_value())
+        mean_mat = self.mean.get_value()
+        return rng.normal(mean_mat, sqrt_var_mat)
 
 
 class ValVarTypeError(Exception):

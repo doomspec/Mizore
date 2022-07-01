@@ -15,18 +15,17 @@ import jax.numpy as jnp
 
 
 class CircuitRunner(Transpiler):
-    def __init__(self, cache_key=None, n_proc=4):
+    def __init__(self,n_proc=4):
         super().__init__()
         self.n_proc = n_proc
         self.eps = 1e-4
         self.shift_by_var = True
-        self.cache_key = cache_key
 
     def transpile(self, target_nodes: GraphIterator):
         output_dict = {}
         node_list: List[MetaCircuitNode] = list(target_nodes.by_type(MetaCircuitNode))
         n_node = len(node_list)
-        args_list = [(node.circuit, node.obs, node.params.mean.get_value(cache_key=self.cache_key),
+        args_list = [(node.circuit, node.obs, node.params.mean.get_value(),
                       node.random_config) for node in node_list]
 
         params_mean = [arg[2] for arg in args_list]
@@ -51,7 +50,7 @@ class CircuitRunner(Transpiler):
                 shift_by_vals = self.eval_shift_by_var(node_list, exp_vals, params_mean, pool)
                 for i in range(len(node_list)):
                     node_list[i].exp_mean.set_value(exp_vals[i] + shift_by_vals[i])
-                    node_list[i].exp_mean.eval_and_cache(self.cache_key)
+                    node_list[i].exp_mean.eval_and_cache()
 
 
         return output_dict

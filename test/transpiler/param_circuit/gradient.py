@@ -92,7 +92,7 @@ for layer in cg.layers():
     i+=1
     #NaiveMeasurement(state_ignorant=True) | layer
     InfiniteMeasurement() | layer
-    CircuitRunner(n_proc=4, cache_key=1) | layer
+    CircuitRunner(n_proc=4) | layer
 
 eval_fun, var_list, init_list = node().val.get_eval_fun()
 
