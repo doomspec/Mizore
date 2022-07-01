@@ -37,6 +37,8 @@ class CompParam(Computable):
         self.cache_key = -1
         self.cache_val = None
 
+    def set_home_node(self, home_node):
+        self.home_node = home_node
 
     def show_value(self):
         print(f"{self.name if self.name is not None else 'Untitled'}: {self.value()}")
@@ -59,7 +61,7 @@ class CompParam(Computable):
         self.cache_val = None
 
     def eval_and_cache(self, cache_key=None):
-        return self.get_value(cache_key=None)
+        return self.get_value(cache_key=cache_key)
 
     def get_value(self, cache_key=None):
         assert cache_key != -1
@@ -69,28 +71,37 @@ class CompParam(Computable):
     def _get_value(cls, param: CompParam, cache_key):
         if param.cache_key == cache_key:
             return param.cache_val
+        if hasattr(param.home_node, "calc"):
+            param.home_node.calc(cache_key=cache_key)
         if len(param.args) != 0:
             arg_vals = []
             for arg in param.args:
                 arg_vals.append(CompParam._get_value(arg, cache_key))
             val = param.operator(*arg_vals)
         else:
-            val = param.operator()
+            if param.operator is not None:
+                val = param.operator()
+            else:
+                raise NotComputedError(param)
         if cache_key is not None:
             param.cache_key = cache_key
             param.cache_val = val
         return val
 
-
-    def get_eval_fun(self) -> Tuple[Callable, List[CompParam], List[numbers.Number]]:
-        eval_fun, var_list, var_dict = CompParam._get_eval_fun(self)
+    def get_eval_fun(self, cache_key=None) -> Tuple[Callable, List[CompParam], List[numbers.Number]]:
+        eval_fun, var_list, var_dict = CompParam._get_eval_fun(self, cache_key=cache_key)
         init_val = numpy.array([var.operator() for var in var_list])
         return lambda args: eval_fun(*args), var_list, init_val
 
     @classmethod
-    def _get_eval_fun(cls, param: CompParam):
+    def _get_eval_fun(cls, param: CompParam, cache_key=None):
         if param.operator is None:
-            raise NotComputedError(param)
+            if hasattr(param.home_node, "calc"):
+                param.home_node.calc(cache_key=cache_key)
+                if param.operator is None:
+                    raise NotComputedError(param)
+            else:
+                raise NotComputedError(param)
         n_child = len(param.args)
         if n_child == 0:
             if param.is_variable:
@@ -290,8 +301,12 @@ class CompParam(Computable):
         return CompParam.unary_operator(self, op)
 
     def __str__(self):
-        res = [f"Class:{self.__class__.__name__}\nName:{self.name}\nHome:{self.home_node}\n", f"Args: {self.args}\n",f"Operator: {self.operator}"]
+        res = [f"Class:{self.__class__.__name__}\nName:{self.name}\nHome:{self.home_node}\n", f"Args: {self.args}\n",
+               f"Operator: {self.operator}"]
         return "".join(res)
+
+    def conjugate(self):
+        return CompParam.unary_operator(self, numpy.conjugate)
 
     def copy_with_map_dict(self, new_elem_dict):
         # TODO test this
@@ -302,6 +317,11 @@ class CompParam(Computable):
         new_param.args = [arg.copy_with_map_dict(new_elem_dict) for arg in self.args]
         new_param.home_node = self.home_node.copy_with_map_dict(new_elem_dict)
         return new_param
+
+    @classmethod
+    def tuple(cls, params: List[CompParam]):
+        tuple_param = CompParam(params, operator=(lambda *arg: tuple(arg)))
+        return tuple_param
 
     @classmethod
     def array(cls, params: List[CompParam]):

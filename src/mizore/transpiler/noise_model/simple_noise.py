@@ -32,16 +32,16 @@ class DepolarizingNoise(Transpiler):
             self.two_qubit_rate = error_rate
 
     def transpile(self, graph_iterator: GraphIterator):
-        qcnode: QCircuitNode
+        mcnode: MetaCircuitNode
 
-        for qcnode in graph_iterator.by_type(QCircuitNode):
-            noisy_circuit: MetaCircuit = qcnode.circuit
+        for mcnode in graph_iterator.by_type(MetaCircuitNode):
+            noisy_circuit: MetaCircuit = mcnode.circuit
             # Add noise make to the backend_circuit post processor
             noisy_circuit.add_post_process(SimpleNoiseMaker(self.error_rate, self.two_qubit_rate))
             noisy_circuit.has_random = True
 
-            qcnode.tags.add("noisy")
-            qcnode.name = qcnode.name + "-Noisy"
+            mcnode.tags.add("noisy")
+            mcnode.name = mcnode.name + "-Noisy"
 
 
 class SimpleNoiseMaker(SimpleProcessor):

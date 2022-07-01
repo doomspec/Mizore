@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Union
 
 
 class Gate:
@@ -12,8 +12,8 @@ class Gate:
     def qulacs_gate(self):
         return
 
-    def simple_reduce(self) -> List[Gate]:
-        return []
+    def simple_reduce(self) -> Union[List[Gate], None]:
+        return None
 
     def get_inverse(self):
         return None

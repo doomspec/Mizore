@@ -1,21 +1,28 @@
 from __future__ import annotations
 
+from typing import Tuple, Union, List
+
 from .block import Block
 
 from ...backend_circuit.controlled import ControlledGate
 
 
 class Controlled(Block):
-    def __init__(self, controlled_block: Block, control_qset):
+    def __init__(self, controlled_block: Block, control_qset, trigger_values:Union[List, None]=None):
         Block.__init__(self, controlled_block.n_param)
         self.controlled_block = controlled_block
         self.control_qset = control_qset
+        self.trigger_values: List[int, ...]
+        if trigger_values is None:
+            self.trigger_values = [1]*len(self.control_qset)
+        else:
+            self.trigger_values = trigger_values
         assert len(control_qset) == 1
 
     def get_gates(self, params):
         controlled_gates = self.controlled_block.get_gates(params)
         for i in range(len(controlled_gates)):
-            controlled_gates[i] = ControlledGate(controlled_gates[i], self.control_qset[0])
+            controlled_gates[i] = ControlledGate(controlled_gates[i], self.control_qset[0], self.trigger_values[0])
         return controlled_gates
 
     def get_inverse_block(self):

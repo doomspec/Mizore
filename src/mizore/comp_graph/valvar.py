@@ -8,6 +8,7 @@ from mizore.comp_graph.comp_param import CompParam
 from mizore.utils.type_check import is_number
 
 from jax.numpy import abs
+from jax.numpy.linalg import solve
 from jax import grad
 from mizore import jax_array
 
@@ -48,7 +49,11 @@ class ValVar:
             # If zero_var is True
             # Make self.var a zero matrix with the same shape as self.val
             self.var = self.mean * 0.0
-        self.name = name
+
+
+        self.name = name if name is not None else "Untitled"
+        self.mean.name = self.name + "-Mean"
+        self.var.name = self.name + "-Var"
 
     def copy_with_map_dict(self, new_elem_dict):
         if self in new_elem_dict.keys():
@@ -58,6 +63,10 @@ class ValVar:
         new_valvar.var = self.var.copy_with_map_dict(new_elem_dict)
         new_valvar.mean = self.mean.copy_with_map_dict(new_elem_dict)
         return new_valvar
+
+    def set_home_node(self, home_node):
+        self.var.home_node = home_node
+        self.mean.home_node = home_node
 
     def replica(self):
         return ValVar(self.mean.replica(), self.var.replica())
@@ -182,11 +191,27 @@ class ValVar:
     def inv(self):
         pass
 
+    def conjugate(self):
+        return ValVar(self.mean.conjugate(), self.var.conjugate())
+
     def value(self):
         return self.mean.value(), self.var.value()
 
     def simple_unary_op(self, op):
         return ValVar(CompParam.unary_operator(self.mean, op), CompParam.unary_operator(self.var, op))
+
+    @classmethod
+    def binary_operator(cls, valvar1: ValVar, valvar2: ValVar, op):
+        valvar_tuple = ValVar.tuple([valvar1, valvar2])
+        return (lambda arg: op(arg[0], arg[1])) | valvar_tuple
+
+    @classmethod
+    def tuple(cls, valvars: List[ValVar]):
+        means = [valvar.mean for valvar in valvars]
+        vars_ = [valvar.var for valvar in valvars]
+        means_param = CompParam.tuple(means)
+        vars_param = CompParam.tuple(vars_)
+        return ValVar(means_param, vars_param)
 
     @classmethod
     def array(cls, valvars: List[ValVar]):

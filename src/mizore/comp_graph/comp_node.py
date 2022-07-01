@@ -54,8 +54,8 @@ class CompNode:
     def add_input_param(self, key, param):
         self.inputs[key] = param
 
-    def add_output_param(self, key, param):
-        param.home_node=self
+    def add_output_param(self, key, param: Union[ValVar, CompParam]):
+        param.set_home_node(self)
         self.outputs[key] = param
         return param
 

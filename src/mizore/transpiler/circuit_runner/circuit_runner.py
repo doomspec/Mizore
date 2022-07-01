@@ -70,8 +70,12 @@ class CircuitRunner(Transpiler):
             second_grad = (shifted_exp_vals[i] - 2 * exp_vals[i] + shifted_exp_vals[i + n_node]) / (self.eps ** 2)
             second_grad = to_jax_array(second_grad.transpose())
             node: MetaCircuitNode = node_list[i]
-            shift_by_var = CompParam.unary_operator((node.params.var * second_grad / 2), lambda x: jnp.sum(x, axis=1))
-            # shift_by_var = jnp.sum(node.params.var.value() * second_grad / 2, axis=1)
+            if node.circuit.n_param != 0:
+                shift_by_var = CompParam.unary_operator((node.params.var * second_grad / 2), lambda x: jnp.sum(x, axis=1))
+                # shift_by_var = jnp.sum(node.params.var.value() * second_grad / 2, axis=1) # Non-differentiable
+            else:
+                shift_by_var = 0
+
             shift_by_vars.append(shift_by_var)
         return shift_by_vars
 

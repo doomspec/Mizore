@@ -23,7 +23,7 @@ def simple_pqc_node_one_obs(param_var=0.001, name=None):
     ops += QubitOperator('X0 X1 X2 X3')
     ops2 = QubitOperator('X0') + QubitOperator('X1') + QubitOperator('X2') + QubitOperator('X3')
     obs = Observable(n_qubit, hamil)
-    bc = MetaCircuit(n_qubit, [GateGroup([X(0)]), RotationGroup(ops),
+    bc = MetaCircuit(n_qubit, [GateGroup(X(0)), RotationGroup(ops),
                                RotationGroup(ops2, fixed_angle_shift=[0.2])])
     n_param = bc.n_param
     node = MetaCircuitNode(bc, obs, name=name)

@@ -18,13 +18,12 @@ class SimpleResource(Transpiler):
     def transpile(self, target_nodes: GraphIterator):
         hardware = self.hardware
         output_dict = {}
-        node: QCircuitNode
-        for node in target_nodes.by_type(QCircuitNode):
+        node: MetaCircuitNode
+        for node in target_nodes.by_type(MetaCircuitNode):
             res = {}
-            if isinstance(node, MetaCircuitNode):
-                n_one, n_two = count_one_two_qubit_gates(node.circuit.get_gates(node.params.mean.value()))
-            else:
-                n_one, n_two = count_one_two_qubit_gates(node.circuit.get_gates())
+
+            n_one, n_two = count_one_two_qubit_gates(node.circuit.get_gates(node.params.mean.value()))
+
             res["n_one_gate"] = n_one
             res["n_two_gate"] = n_two
             res["n_gate"] = n_one + n_two

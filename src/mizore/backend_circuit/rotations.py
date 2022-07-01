@@ -5,7 +5,7 @@ from qulacs.gate import PauliRotation as qulacs_PauliRotation
 from qulacs.gate import RX, RY, RZ
 
 from mizore.backend_circuit.gate import Gate
-from mizore.backend_circuit.one_qubit_gates import H
+from mizore.backend_circuit.one_qubit_gates import Hadamard
 from mizore.backend_circuit.two_qubit_gates import CNOT
 from mizore.operators.qubit_operator import QubitOperator
 
@@ -60,7 +60,7 @@ class PauliRotation(Gate):
 
         for target, pauli in zip(self.qset, self.pauli_ops):
             if pauli == 1:
-                res.append(H(target))
+                res.append(Hadamard(target))
             elif pauli == 2:
                 res.append(SingleRotation(1, target, -pi / 2))
 
@@ -74,7 +74,7 @@ class PauliRotation(Gate):
 
         for target, pauli in zip(self.qset, self.pauli_ops):
             if pauli == 1:
-                res.append(H(target))
+                res.append(Hadamard(target))
             elif pauli == 2:
                 res.append(SingleRotation(1, target, pi / 2))
 

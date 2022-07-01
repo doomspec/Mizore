@@ -1,5 +1,6 @@
 from typing import Iterable, List
 
+from mizore.comp_graph.node.mc_node import MetaCircuitNode
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.meta_circuit.post_processor import SimpleProcessor
 from mizore.backend_circuit.gate import Gate
@@ -13,13 +14,9 @@ from mizore.transpiler.transpiler import Transpiler
 class SimpleReducer(Transpiler):
 
     def transpile(self, target_nodes: GraphIterator):
-        for node in target_nodes.by_type(QCircuitNode):
+        for node in target_nodes.by_type(MetaCircuitNode):
             circuit: MetaCircuit = node.circuit
-            if not hasattr(circuit, "post_processors"):
-                circuit = MetaCircuit.wrap_q_circuit(circuit)
-                node.circuit = circuit
             circuit.add_post_process(ReduceProcessor())
-
 
 class ReduceProcessor(SimpleProcessor):
     name = "gate_reducer"

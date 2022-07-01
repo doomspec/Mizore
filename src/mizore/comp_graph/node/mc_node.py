@@ -6,7 +6,7 @@ from mizore.operators.observable import Observable
 from mizore.comp_graph.comp_param import CompParam
 from .qc_node import QCircuitNode
 from mizore.comp_graph.valvar import ValVar
-from mizore import jax_array
+from mizore import jax_array, to_jax_array
 
 from ..var_param import VariableParam
 
@@ -24,6 +24,8 @@ class MetaCircuitNode(QCircuitNode):
         self.add_output_param("ExpVar", CompParam(name=f"{self.name}-ExpVar"))
 
         self.add_input_param("Params", ValVar(None))
+        self.params.bind_to(ValVar([0.0]*circuit.n_param, [0.0]*circuit.n_param))
+
 
         self.calc_shift_by_param_var = calc_shift_by_param_var
 

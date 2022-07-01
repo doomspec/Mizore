@@ -51,6 +51,8 @@ def get_qc_node_var_coeff(node: QCircuitNode, ob):
         assert prob.imag < 1e-8  # In case the imaginary part is not zero, there must be a bug
         prob = prob.real
         var = 4 * (1 - prob) * prob  # variance of two-point distribution
+        if var < 0:
+            var += 1e-15
         weight_list.append(abs(weight) * sqrt(var))
     del state
     weight_sum = sum(weight_list)

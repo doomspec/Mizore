@@ -20,8 +20,8 @@ class SimpleHardware:
         self.readout_error = readout
 
     def set_times(self, one_qubit=0.0, two_qubit=0.0, readout=0.0, initialization=0.0):
-        self.two_qubit_gate_time = one_qubit
-        self.one_qubit_gate_time = two_qubit
+        self.two_qubit_gate_time = two_qubit
+        self.one_qubit_gate_time = one_qubit
         self.readout_time = readout
         self.init_time = initialization
 

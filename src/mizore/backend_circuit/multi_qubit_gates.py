@@ -1,10 +1,10 @@
 from typing import List
 
 from mizore.backend_circuit.gate import Gate
-from qulacs import Pauli as qulacs_Pauli
+from qulacs.gate import Pauli as qulacs_Pauli
 from .one_qubit_gates import X, Y, Z
 
-qulacs_pauli_gate_map = [X, Y, Z]
+qulacs_pauli_gate_map = [None,X, Y, Z]
 
 
 class PauliGate(Gate):

@@ -18,7 +18,7 @@ class MetaCircuit:
             self._blocks = copy(blocks)
             assert gates is None
         elif gates is not None:
-            self._blocks = [GateGroup(gates)]
+            self._blocks = [GateGroup(*gates)]
         else:
             self._blocks = []
         self._n_param = -1
@@ -40,7 +40,14 @@ class MetaCircuit:
         self.param_delimiter = param_delimiter
 
     def add_gates(self, gates: List[Gate]):
-        self.add_blocks([GateGroup(gates)])
+        self.add_blocks([GateGroup(*gates)])
+
+    @property
+    def blocks(self):
+        """
+        :return: a copy of the list of blocks
+        """
+        return self._blocks[:]
 
     def add_blocks(self, blocks: List[Block]):
         self._blocks.extend(blocks)
@@ -105,7 +112,7 @@ class MetaCircuit:
         else:
             return obs.get_backend_operator().get_expectation_value(state)
 
-    def get_gradient_circuits(self, param_index) -> List[Tuple[float, MetaCircuit]]:
+    def get_block_index_by_param_index(self, param_index) -> Tuple[int, int]:
         if self.param_delimiter is None:
             self.make_param_delimiter()
         # Figure out which block this param is in
@@ -116,6 +123,10 @@ class MetaCircuit:
             block_index += 1
         block_index -= 1
         in_block_param_index = param_index - self.param_delimiter[block_index]
+        return block_index, in_block_param_index
+
+    def get_gradient_circuits(self, param_index) -> List[Tuple[float, MetaCircuit]]:
+        block_index, in_block_param_index = self.get_block_index_by_param_index(param_index)
         gradient_blocks = self._blocks[block_index].get_gradient_blocks(in_block_param_index)
         new_circuits = []
         for coeff, block in gradient_blocks:
