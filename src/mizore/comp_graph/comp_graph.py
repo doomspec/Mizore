@@ -14,8 +14,9 @@ class CompGraph:
         self._output_elems = []
         # Construct _output_elems according to the input types
         self._add_output_elems(output_elems)
-        self.elems = set()
+        self.params: Set[CompParam] = set()
         self.nodes = []
+        self.nodes_set = set()
         self.out_graph_nodes = set()
         for elem in self._output_elems:
             # Add all connected params/nodes in the graph
@@ -50,8 +51,9 @@ class CompGraph:
 
     def reconstruct(self):
         # Reconstruct the graph
-        self.elems = set()
+        self.params = set()
         self.nodes = []
+        self.nodes_set = set()
         self.out_graph_nodes = set()
         for elem in self._output_elems:
             # Add all connected params/nodes in the graph
@@ -61,6 +63,11 @@ class CompGraph:
         self.build_node_graph()
         self._layers = []
         self.build_node_layers()
+
+    def del_all_cache(self):
+        param: CompParam
+        for param in self.params:
+            param.del_cache()
 
     def copy_graph(self):
         """
@@ -142,30 +149,38 @@ class CompGraph:
         :param root: the root element where the search is from
         """
         if isinstance(root, CompParam):
-            self.elems.add(root)
+            self.params.add(root)
             if root.home_node is not None:
-                if root.home_node not in self.elems:
+                if root.home_node not in self.params:
                     if root.home_node.in_graph:
                         self.add_child_elems(root.home_node)
                     else:
                         self.out_graph_nodes.add(root.home_node)
             for param in root.args:
-                if param not in self.elems:
+                if param not in self.params:
                     self.add_child_elems(param)
         elif isinstance(root, CompNode): # If root is a CompNode
             root: CompNode
             assert root.in_graph # The initial elem must be in_graph
-            if root not in self.elems:
-                self.elems.add(root)
+            if root not in self.nodes:
+                self.nodes_set.add(root)
                 self.nodes.append(root)
             for param in root.inputs.values():
-                if param not in self.elems:
-                    self.elems.add(param)
-                    self.add_child_elems(param)
+                if isinstance(param, CompParam):
+                    if param not in self.params:
+                        self.params.add(param)
+                        self.add_child_elems(param)
+                elif isinstance(param, ValVar):
+                    for param_sub in [param.mean, param.var]:
+                        if param_sub not in self.params:
+                            self.params.add(param_sub)
+                            self.add_child_elems(param_sub)
+                else:
+                    raise TypeError()
         elif isinstance(root, ValVar):
-            for param in [root, root.mean, root.var]:
-                if param not in self.elems:
-                    self.elems.add(param)
+            for param in [root.mean, root.var]:
+                if param not in self.params:
+                    self.params.add(param)
                     self.add_child_elems(param)
         else:
             raise TypeError()
