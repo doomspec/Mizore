@@ -34,7 +34,6 @@ class CompParam(Computable):
             self.operator = operator
 
         self.is_variable = False
-        self.cache_key = -1
         self.cache_val = None
 
     def set_home_node(self, home_node):
@@ -52,52 +51,58 @@ class CompParam(Computable):
     def value(self):
         return self.get_value()
 
-    def set_cache(self, cache_val, cache_key):
-        self.cache_val = cache_val
-        self.cache_key = cache_key
-
     def del_cache(self):
-        self.cache_key = -1
         self.cache_val = None
 
-    def eval_and_cache(self, cache_key=None):
-        return self.get_value(cache_key=cache_key)
+    """
+    def del_cache_recursive(self):
+        CompParam.del_cache_recursive_(self, set())
+    
+    @classmethod
+    def del_cache_recursive_(cls, param: CompParam, touched_param: Set[CompParam]):
+        param.del_cache()
+        for arg_param in param.args:
+            if arg_param not in touched_param:
+                touched_param.add(arg_param)
+                CompParam.del_cache_recursive_(arg_param, touched_param)
+    """
 
-    def get_value(self, cache_key=None):
-        assert cache_key != -1
-        return CompParam._get_value(self, cache_key)
+    def eval_and_cache(self):
+        return self.get_value()
+
+    def get_value(self):
+        return CompParam._get_value(self)
 
     @classmethod
-    def _get_value(cls, param: CompParam, cache_key):
-        if param.cache_key == cache_key:
+    def _get_value(cls, param: CompParam):
+        if param.cache_val is not None:
             return param.cache_val
         if hasattr(param.home_node, "calc"):
-            param.home_node.calc(cache_key=cache_key)
+            param.home_node.calc()
         if len(param.args) != 0:
             arg_vals = []
             for arg in param.args:
-                arg_vals.append(CompParam._get_value(arg, cache_key))
+                arg_vals.append(CompParam._get_value(arg))
             val = param.operator(*arg_vals)
         else:
             if param.operator is not None:
                 val = param.operator()
             else:
                 raise NotComputedError(param)
-        if cache_key is not None:
-            param.cache_key = cache_key
-            param.cache_val = val
+
+        param.cache_val = val
         return val
 
-    def get_eval_fun(self, cache_key=None) -> Tuple[Callable, List[CompParam], List[numbers.Number]]:
-        eval_fun, var_list, var_dict = CompParam._get_eval_fun(self, cache_key=cache_key)
+    def get_eval_fun(self) -> Tuple[Callable, List[CompParam], List[numbers.Number]]:
+        eval_fun, var_list, var_dict = CompParam._get_eval_fun(self)
         init_val = numpy.array([var.operator() for var in var_list])
         return lambda args: eval_fun(*args), var_list, init_val
 
     @classmethod
-    def _get_eval_fun(cls, param: CompParam, cache_key=None):
+    def _get_eval_fun(cls, param: CompParam):
         if param.operator is None:
             if hasattr(param.home_node, "calc"):
-                param.home_node.calc(cache_key=cache_key)
+                param.home_node.calc()
                 if param.operator is None:
                     raise NotComputedError(param)
             else:
