@@ -23,10 +23,12 @@ class CircuitRunner(Transpiler):
 
     def transpile(self, target_nodes: GraphIterator):
         output_dict = {}
-        node_list: List[MetaCircuitNode] = list(target_nodes.by_type(MetaCircuitNode))
+        node_list: List[QCircuitNode] = list(target_nodes.by_type(QCircuitNode))
         n_node = len(node_list)
-        args_list = [(node.circuit, node.obs, node.params.mean.get_value(),
-                      node.random_config) for node in node_list]
+        args_list = []
+        for node in node_list:
+            args_list.append((node.circuit, node.obs, node.get_params_mean(),
+                      node.random_config))
 
         params_mean = [arg[2] for arg in args_list]
         """
@@ -47,10 +49,22 @@ class CircuitRunner(Transpiler):
                     node_list[i].exp_mean.set_value(exp_vals[i])
 
             if self.shift_by_var:
-                shift_by_vals = self.eval_shift_by_var(node_list, exp_vals, params_mean, pool)
+                meta_node_list = []
+                meta_params_mean = []
+                meta_exp_vals = []
                 for i in range(len(node_list)):
-                    node_list[i].exp_mean.set_value(exp_vals[i] + shift_by_vals[i])
-                    node_list[i].exp_mean.eval_and_cache()
+                    if isinstance(node_list[i], MetaCircuitNode):
+                        meta_node_list.append(node_list[i])
+                        meta_params_mean.append(params_mean[i])
+                        meta_exp_vals.append(exp_vals[i])
+                    else:
+                        # If it is a normal QCircuitNode, set its expectation value
+                        node_list[i].exp_mean.set_value(exp_vals[i])
+                shift_by_vals = self.eval_shift_by_var(meta_node_list, meta_exp_vals, meta_params_mean, pool)
+
+                for i in range(len(meta_node_list)):
+                    meta_node_list[i].exp_mean.set_value(exp_vals[i] + shift_by_vals[i])
+                    meta_node_list[i].exp_mean.eval_and_cache()
 
 
         return output_dict
