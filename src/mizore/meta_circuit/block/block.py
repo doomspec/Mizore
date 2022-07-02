@@ -22,7 +22,7 @@ class Block:
     def get_gradient_blocks(self, param_index: int) -> List[Gate]:
         raise NotImplementedError()
 
-    def get_gates(self, params: List) -> List[Gate]:
+    def get_gates(self, params) -> List[Gate]:
         raise NotImplementedError()
 
     def get_inverse_block(self) -> Block:
