@@ -95,11 +95,18 @@ class CompParam(Computable):
 
     def get_eval_fun(self) -> Tuple[Callable, List[CompParam], List[numbers.Number]]:
         eval_fun, var_list, var_dict = CompParam._get_eval_fun(self)
-        init_val = numpy.array([var.operator() for var in var_list])
+        init_val = numpy.array([var.value() for var in var_list])
         return lambda args: eval_fun(*args), var_list, init_val
 
     @classmethod
     def _get_eval_fun(cls, param: CompParam):
+        """
+        :return: A tuple of three elements
+        eval_fun: the function for evaluation, whose variable is specified by var_list and var_dict
+        var_list: the list of variables for the eval_fun. The order matters
+        var_dict: the dict that map variable (CompParam) to its position in var_list.
+        var_dict should be maintained to be consistent with var_list
+        """
         if param.operator is None:
             if hasattr(param.home_node, "calc"):
                 param.home_node.calc()
@@ -107,12 +114,11 @@ class CompParam(Computable):
                     raise NotComputedError(param)
             else:
                 raise NotComputedError(param)
+        if param.is_variable:
+            return lambda x: x, [param], {param: 0}
         n_child = len(param.args)
         if n_child == 0:
-            if param.is_variable:
-                return lambda x: x, [param], {param: 0}
-            else:
-                return lambda: param.operator(), [], dict()
+            return lambda: param.operator(), [], dict()
         elif n_child == 1:
             sub_eval, sub_vars, sub_vars_dict = CompParam._get_eval_fun(param.args[0])
             return lambda *args: param.operator(sub_eval(*args)), sub_vars, sub_vars_dict
@@ -194,9 +200,8 @@ class CompParam(Computable):
     def replica(self):
         return CompParam(args=self.args, operator=self.operator)
 
-    def set_to_variable(self, default_val):
+    def set_to_variable(self):
         self.is_variable = True
-        self.set_value(default_val)
 
     def change_to_const(self, val=None):
         self.is_variable = False

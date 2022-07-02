@@ -8,9 +8,9 @@ from typing import Union, List, Iterable
 from mizore.comp_graph.comp_param import CompParam
 from mizore.utils.type_check import is_number
 
-from jax.numpy import abs, sqrt
+from jax.numpy import abs, sqrt, reshape, sum, dot
 from jax.numpy.linalg import solve
-from jax import grad
+from jax import grad, jacfwd
 from mizore import jax_array
 from numpy.random import default_rng
 
@@ -95,12 +95,28 @@ class ValVar:
 
     # Also see https://en.wikipedia.org/wiki/Taylor_expansions_for_the_moments_of_functions_of_random_variables
 
-    def __ror__(self, op):
+    def op_on_scalar(self, op):
         first_grad = grad(op)
         second_grad = grad(first_grad)
         mean = (op | self.mean) + 0.5 * (second_grad | self.mean) * self.var
         var = ((first_grad | self.mean) ** 2) * self.var - 0.25 * ((second_grad | self.mean) ** 2) * (self.var ** 2)
         return ValVar(mean, var)
+
+    @classmethod
+    def multiply_and_sum(cls, grad, var):
+        return sum(grad * var, axis=tuple(i for i in range(grad.ndim-var.ndim, grad.ndim)))
+
+    def op_on_mat(self, op):
+        first_grad = jacfwd(op)
+        mean = (op | self.mean)
+        var = CompParam.binary_operator((first_grad | self.mean) ** 2 , self.var, ValVar.multiply_and_sum)
+        return ValVar(mean, var)
+
+    def __ror__(self, op):
+        return self.op_on_scalar(op)
+
+    def __rrshift__(self, op):
+        return self.op_on_mat(op)
 
     def __mul__(self, other):
         if is_number(other):
@@ -204,8 +220,15 @@ class ValVar:
         return ValVar(CompParam.unary_operator(self.mean, op), CompParam.unary_operator(self.var, op))
 
     @classmethod
-    def binary_op(cls, valvar1: ValVar, valvar2: ValVar, op):
-        pass
+    def binary_op_first_order(cls, valvar0: ValVar, valvar1: ValVar, op):
+        mean = CompParam.binary_operator(valvar0.mean, valvar1.mean, op)
+        grad0 = jacfwd(op, argnums=0)
+        grad1 = jacfwd(op, argnums=1)
+        grad_sqr_0 = CompParam.binary_operator(valvar0.mean, valvar1.mean, grad0) ** 2
+        grad_sqr_1 = CompParam.binary_operator(valvar0.mean, valvar1.mean, grad1) ** 2
+        var = CompParam.binary_operator(grad_sqr_0, valvar0.var, ValVar.multiply_and_sum) + \
+                    CompParam.binary_operator(grad_sqr_1, valvar1.var, ValVar.multiply_and_sum)
+        return ValVar(mean, var)
 
     @classmethod
     def tuple(cls, valvars: List[ValVar]):
