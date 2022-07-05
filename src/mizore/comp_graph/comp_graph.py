@@ -1,26 +1,24 @@
 from collections.abc import Iterable
-from copy import copy
-from typing import Set, Dict, List, Union, Generator
+from typing import Set, Dict, Union
 
 from mizore.utils.typed_log import TypedLog
 
 from .comp_node import CompNode
-from .comp_param import CompParam
-from .valvar import ValVar
+from .value import Value
 
 
 class CompGraph:
     def __init__(self, output_elems):
-        self._output_elems = []
-        # Construct _output_elems according to the input types
-        self._add_output_elems(output_elems)
-        self.params: Set[CompParam] = set()
+        self._output_vals = []
+        # Construct _output_vals according to the input types
+        self._add_output_vals(output_elems)
+        self.values: Set[Value] = set()
         self.nodes = []
         self.nodes_set = set()
         self.out_graph_nodes = set()
-        for elem in self._output_elems:
-            # Add all connected params/nodes in the graph
-            self.add_child_elems(elem)
+        for val in self._output_vals:
+            # Add all connected values/nodes in the graph
+            self.add_child_elems(val)
         self.node_in: Dict = {node: set() for node in self.nodes}
         self.node_out: Dict = {node: set() for node in self.nodes}
         self.build_node_graph()
@@ -28,35 +26,26 @@ class CompGraph:
         self.build_node_layers()
         self.log = TypedLog()
 
-    def add_output_elems(self, output_elems, reconstruct=True):
-        self._add_output_elems(output_elems)
+    def add_output_vals(self, output_vals, reconstruct=True):
+        self._add_output_vals(output_vals)
         if reconstruct:
             self.reconstruct()
 
-    def _add_output_elems(self, output_elems):
-        if isinstance(output_elems, Iterable):
-            for elem in output_elems:
-                self.add_an_elem(elem)
+    def _add_output_vals(self, output_vals):
+        if isinstance(output_vals, Iterable):
+            for elem in output_vals:
+                self._output_vals.append(elem)
         else:
-            self.add_an_elem(output_elems)
-
-    def add_an_elem(self, elem):
-        if isinstance(elem, CompParam):
-            self._output_elems.append(elem)
-        elif isinstance(elem, ValVar):
-            self._output_elems.append(elem.mean)
-            self._output_elems.append(elem.var)
-        else:
-            raise TypeError()
+            self._output_vals.append(output_vals)
 
     def reconstruct(self):
         # Reconstruct the graph
-        self.params = set()
+        self.values = set()
         self.nodes = []
         self.nodes_set = set()
         self.out_graph_nodes = set()
-        for elem in self._output_elems:
-            # Add all connected params/nodes in the graph
+        for elem in self._output_vals:
+            # Add all connected values/nodes in the graph
             self.add_child_elems(elem)
         self.node_in: Dict = {node: set() for node in self.nodes}
         self.node_out: Dict = {node: set() for node in self.nodes}
@@ -65,24 +54,23 @@ class CompGraph:
         self.build_node_layers()
 
     def del_all_cache(self):
-        param: CompParam
-        for param in self.params:
-            param.del_cache()
+        val: Value
+        for val in self.values:
+            val.del_cache()
 
     def copy_graph(self):
         """
-        To use this function, you must make sure all the nodes only contain references to other CompParam
+        To use this function, you must make sure all the nodes only contain references to other Value
         in its inputs and outputs list
         :return:
         """
         # TODO test this
         new_elem_dict = {}
         new_output_elems = []
-        for param in self._output_elems:
-            new_param = param.copy_with_map_dict(new_elem_dict)
-            new_output_elems.append(new_param)
+        for val in self._output_vals:
+            new_val = val.copy_with_map_dict(new_elem_dict)
+            new_output_elems.append(new_val)
         return CompGraph(new_output_elems)
-
 
     def build_node_layers(self):
         temp_node_in = {}
@@ -128,60 +116,49 @@ class CompGraph:
 
     @classmethod
     def get_direct_node_child(cls, root, child_set: Set):
-        if isinstance(root, CompParam):
+        if isinstance(root, Value):
             if root.home_node is not None and root.home_node.in_graph:
                 child_set.add(root.home_node)
-            for param in root.args:
-                CompGraph.get_direct_node_child(param, child_set)
+            for val in root.args:
+                CompGraph.get_direct_node_child(val, child_set)
         elif isinstance(root, CompNode):
-            for param in root.inputs.values():
-                CompGraph.get_direct_node_child(param, child_set)
-        elif isinstance(root, ValVar):
-            for param in [root.mean, root.var]:
-                CompGraph.get_direct_node_child(param, child_set)
+            for val in root.inputs.values():
+                CompGraph.get_direct_node_child(val, child_set)
         else:
             raise TypeError()
 
-    def add_child_elems(self, root) -> None:
+    def add_child_elems(self, root: Union[Value, CompNode]) -> None:
         """
-        Add all elements (CompNode and CompParam) in self.elems
+        Add all elements (CompNode and Value) in self.elems
         Add all CompNode in self.nodes
         :param root: the root element where the search is from
         """
-        if isinstance(root, CompParam):
-            self.params.add(root)
+        if isinstance(root, Value):
+            self.values.add(root)
             if root.home_node is not None:
-                if root.home_node not in self.params:
+                if root.home_node not in self.values:
                     if root.home_node.in_graph:
                         self.add_child_elems(root.home_node)
                     else:
                         self.out_graph_nodes.add(root.home_node)
-            for param in root.args:
-                if param not in self.params:
-                    self.add_child_elems(param)
-        elif isinstance(root, CompNode): # If root is a CompNode
+            for val in root.args:
+                if val not in self.values:
+                    self.add_child_elems(val)
+            if root.is_indep_random and root.var_constructed is not None:
+                self.add_child_elems(root.var_constructed)
+        elif isinstance(root, CompNode):  # If root is a CompNode
             root: CompNode
-            assert root.in_graph # The initial elem must be in_graph
+            assert root.in_graph  # The initial elem must be in_graph
             if root not in self.nodes:
                 self.nodes_set.add(root)
                 self.nodes.append(root)
-            for param in root.inputs.values():
-                if isinstance(param, CompParam):
-                    if param not in self.params:
-                        self.params.add(param)
-                        self.add_child_elems(param)
-                elif isinstance(param, ValVar):
-                    for param_sub in [param.mean, param.var]:
-                        if param_sub not in self.params:
-                            self.params.add(param_sub)
-                            self.add_child_elems(param_sub)
+            for val in root.inputs.values():
+                if isinstance(val, Value):
+                    if val not in self.values:
+                        self.values.add(val)
+                        self.add_child_elems(val)
                 else:
                     raise TypeError()
-        elif isinstance(root, ValVar):
-            for param in [root.mean, root.var]:
-                if param not in self.params:
-                    self.params.add(param)
-                    self.add_child_elems(param)
         else:
             raise TypeError()
 
@@ -191,6 +168,7 @@ class CompGraph:
                 for node in layer:
                     if isinstance(node, typename):
                         yield node
+
         return GraphIterator(iterable(), self)
 
     def iter_nodes_by_tag(self, tag: Union[Iterable, any]):
@@ -205,6 +183,7 @@ class CompGraph:
                 for node in layer:
                     if not node.tags.isdisjoint(_tags):
                         yield node
+
         return GraphIterator(iterable(), self)
 
     def iter_nodes_by_prefix(self, prefix):
@@ -214,6 +193,7 @@ class CompGraph:
                 for node in layer:
                     if node.name is not None and node.name.startswith(prefix):
                         yield node
+
         return GraphIterator(iterable(), self)
 
     def __str__(self):
@@ -239,6 +219,7 @@ class CompGraph:
             for layer in self._layers:
                 for node in layer:
                     yield node
+
         return GraphIterator(iterable(), self)
 
     def __iter__(self):
@@ -257,6 +238,7 @@ class CompGraph:
     @property
     def comp_graph(self):
         return self
+
 
 class GraphIterator:
     def __init__(self, iterable, comp_graph: CompGraph):

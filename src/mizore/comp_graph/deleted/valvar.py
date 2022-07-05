@@ -5,11 +5,10 @@ import time
 from copy import copy
 from typing import Union, List, Iterable
 
-from mizore.comp_graph.comp_param import CompParam
+from mizore.comp_graph.value import Value
 from mizore.utils.type_check import is_number
 
-from jax.numpy import abs, sqrt, reshape, sum, dot
-from jax.numpy.linalg import solve
+from jax.numpy import abs, sqrt, sum
 from jax import grad, jacfwd
 from mizore import jax_array
 from numpy.random import default_rng
@@ -20,32 +19,32 @@ class ValVar:
     The class for 'Value with Variance'
     Package for similar function: https://uncertainties.readthedocs.io/en/latest/index.html
     """
-    def __init__(self, mean: Union[CompParam, Iterable, numbers.Number, None],
-                 var: Union[CompParam, Iterable, numbers.Number] = None, name=None, zero_var=False):
-        self.mean: CompParam
-        if isinstance(mean, CompParam):
-            self.mean = CompParam()
+    def __init__(self, mean: Union[Value, Iterable, numbers.Number, None],
+                 var: Union[Value, Iterable, numbers.Number] = None, name=None, zero_var=False):
+        self.mean: Value
+        if isinstance(mean, Value):
+            self.mean = Value()
             self.mean.bind_to(mean)
         elif mean is None:
-            self.mean = CompParam()
+            self.mean = Value()
         else:
             try:
-                self.mean = CompParam(val=jax_array(mean))
+                self.mean = Value(val=jax_array(mean))
             except Exception:
                 raise TypeError()
 
-        self.var: CompParam
+        self.var: Value
         if not zero_var:
-            if isinstance(var, CompParam):
-                self.var = CompParam()
+            if isinstance(var, Value):
+                self.var = Value()
                 self.var.bind_to(var)
             elif var is not None:
                 try:
-                    self.var = CompParam(val=jax_array(var))
+                    self.var = Value(val=jax_array(var))
                 except Exception:
                     raise TypeError()
             else:
-                self.var = CompParam()
+                self.var = Value()
         else:
             if var is not None:
                 raise Exception()
@@ -109,7 +108,7 @@ class ValVar:
     def op_on_mat(self, op):
         first_grad = jacfwd(op)
         mean = (op | self.mean)
-        var = CompParam.binary_operator((first_grad | self.mean) ** 2 , self.var, ValVar.multiply_and_sum)
+        var = Value.binary_operator((first_grad | self.mean) ** 2, self.var, ValVar.multiply_and_sum)
         return ValVar(mean, var)
 
     def __ror__(self, op):
@@ -217,33 +216,33 @@ class ValVar:
         return self.mean.value(), self.var.value()
 
     def simple_unary_op(self, op):
-        return ValVar(CompParam.unary_operator(self.mean, op), CompParam.unary_operator(self.var, op))
+        return ValVar(Value.unary_operator(self.mean, op), Value.unary_operator(self.var, op))
 
     @classmethod
     def binary_op_first_order(cls, valvar0: ValVar, valvar1: ValVar, op):
-        mean = CompParam.binary_operator(valvar0.mean, valvar1.mean, op)
+        mean = Value.binary_operator(valvar0.mean, valvar1.mean, op)
         grad0 = jacfwd(op, argnums=0)
         grad1 = jacfwd(op, argnums=1)
-        grad_sqr_0 = CompParam.binary_operator(valvar0.mean, valvar1.mean, grad0) ** 2
-        grad_sqr_1 = CompParam.binary_operator(valvar0.mean, valvar1.mean, grad1) ** 2
-        var = CompParam.binary_operator(grad_sqr_0, valvar0.var, ValVar.multiply_and_sum) + \
-                    CompParam.binary_operator(grad_sqr_1, valvar1.var, ValVar.multiply_and_sum)
+        grad_sqr_0 = Value.binary_operator(valvar0.mean, valvar1.mean, grad0) ** 2
+        grad_sqr_1 = Value.binary_operator(valvar0.mean, valvar1.mean, grad1) ** 2
+        var = Value.binary_operator(grad_sqr_0, valvar0.var, ValVar.multiply_and_sum) + \
+              Value.binary_operator(grad_sqr_1, valvar1.var, ValVar.multiply_and_sum)
         return ValVar(mean, var)
 
     @classmethod
     def tuple(cls, valvars: List[ValVar]):
         means = [valvar.mean for valvar in valvars]
         vars_ = [valvar.var for valvar in valvars]
-        means_param = CompParam.tuple(means)
-        vars_param = CompParam.tuple(vars_)
+        means_param = Value.tuple(means)
+        vars_param = Value.tuple(vars_)
         return ValVar(means_param, vars_param)
 
     @classmethod
     def array(cls, valvars: List[ValVar]):
         means = [valvar.mean for valvar in valvars]
         vars_ = [valvar.var for valvar in valvars]
-        means_param = CompParam.array(means)
-        vars_param = CompParam.array(vars_)
+        means_param = Value.array(means)
+        vars_param = Value.array(vars_)
         return ValVar(means_param, vars_param)
 
     def get_by_index(self, index):
@@ -271,8 +270,8 @@ class ValVar:
 class ValVarTypeError(Exception):
     def __init__(self, other):
         msg: str
-        if isinstance(other, CompParam):
-            msg = "ValVar cannot interact with CompParam directly. \n" + \
+        if isinstance(other, Value):
+            msg = "ValVar cannot interact with Value directly. \n" + \
                   "If you know what you are doing, you can use ValVar(param, 0) instead."
         else:
             msg = f"ValVar cannot interact with {other.__class__.__name__} directly."

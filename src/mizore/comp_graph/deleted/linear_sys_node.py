@@ -1,14 +1,14 @@
 from mizore.comp_graph.node.calc_node import CalcNode
-from mizore.comp_graph.valvar import ValVar
+from mizore.comp_graph.deleted.valvar import ValVar
 import numpy as np
 
 
 class LinearSysNode(CalcNode):
     def __init__(self, A_mat: ValVar, b_vec: ValVar, name=None):
         super().__init__(name=name)
-        self.add_output_param("Solution", ValVar(None, name="Solution"))
-        self.add_input_param("A_mat", ValVar(None, name="A_mat"))
-        self.add_input_param("b_vec", ValVar(None, name="b_vec"))
+        self.add_output_value("Solution", ValVar(None, name="Solution"))
+        self.add_input_value("A_mat", ValVar(None, name="A_mat"))
+        self.add_input_value("b_vec", ValVar(None, name="b_vec"))
         self.A_mat.bind_to(A_mat)
         self.b_vec.bind_to(b_vec)
 

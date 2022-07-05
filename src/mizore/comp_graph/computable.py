@@ -1,4 +1,0 @@
-
-
-class Computable:
-    pass
