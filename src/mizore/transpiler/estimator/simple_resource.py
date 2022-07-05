@@ -2,7 +2,7 @@ from typing import Iterable
 
 from mizore.comp_graph.comp_graph import GraphIterator
 from mizore.comp_graph.comp_node import CompNode
-from mizore.comp_graph.node.mc_node import MetaCircuitNode
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 
 from mizore.comp_graph.node.qc_node import QCircuitNode
 from mizore.transpiler.estimator.utils.count_gates import count_one_two_qubit_gates
@@ -18,11 +18,11 @@ class SimpleResource(Transpiler):
     def transpile(self, target_nodes: GraphIterator):
         hardware = self.hardware
         output_dict = {}
-        node: MetaCircuitNode
-        for node in target_nodes.by_type(MetaCircuitNode):
+        node: DeviceCircuitNode
+        for node in target_nodes.by_type(DeviceCircuitNode):
             res = {}
 
-            n_one, n_two = count_one_two_qubit_gates(node.circuit.get_gates(node.params.mean.value()))
+            n_one, n_two = count_one_two_qubit_gates(node.circuit.get_gates(node.params.value()))
 
             res["n_one_gate"] = n_one
             res["n_two_gate"] = n_two
@@ -41,7 +41,8 @@ class SimpleResource(Transpiler):
             res["time"] = time
             try:
                 res["total_time"] = float(node.shot_num.value()*time)
-            except Exception:
+            except Exception as e:
+                print(e)
                 pass
 
             output_dict[node] = res

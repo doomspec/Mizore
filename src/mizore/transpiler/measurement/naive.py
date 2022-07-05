@@ -1,6 +1,6 @@
 from qulacs import QuantumState
 from mizore.comp_graph.comp_graph import GraphIterator
-from mizore.comp_graph.node.mc_node import MetaCircuitNode
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.node.qc_node import QCircuitNode
 from mizore.operators.qulacs import iter_qulacs_ops
 from mizore.transpiler.transpiler import Transpiler
@@ -21,19 +21,18 @@ class NaiveMeasurement(Transpiler):
 
     def transpile(self, graph_iterator: GraphIterator):
         output_dict = {}
-        node: MetaCircuitNode
-        for node in graph_iterator.by_type(MetaCircuitNode):
-            # circuit_output = {}
+        node: DeviceCircuitNode
+        for node in graph_iterator.by_type(DeviceCircuitNode):
             var_coeffs = []
             if not self.state_ignorant:  # The state aware mode
-                for ob in node.obs:
+                for ob in node.obs_list:
                     var_coeffs.append(get_qc_node_var_coeff(node, ob))
             else:  # The state ignorant mode
-                for ob in node.obs:
+                for ob in node.obs_list:
                     weight_sum = sum([weight for _, weight in ob.operator.terms.items()])
                     var_coeffs.append(weight_sum ** 2 * unit_variance)
-            var_coeffs = jax_array(var_coeffs)
-            node.exp_var.set_value(var_coeffs / node.shot_num)
+            var_coeffs = jax_array(var_coeffs) if not node.is_single_obs else var_coeffs[0]
+            node.expv.set_to_random_variable(var_coeffs / node.shot_num, check_valid=False)
         return output_dict
 
 

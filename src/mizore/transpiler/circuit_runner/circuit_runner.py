@@ -1,11 +1,11 @@
 from time import time
 from typing import List
 from mizore.comp_graph.comp_graph import GraphIterator
-from mizore.comp_graph.comp_param import CompParam
-from mizore.comp_graph.node.mc_node import MetaCircuitNode
+from mizore.comp_graph.value import Value
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.node.qc_node import QCircuitNode
 
-from mizore.transpiler.circuit_runner._circuit_runner_impl import eval_on_param_mean, eval_second_grads, \
+from mizore.transpiler.circuit_runner._circuit_runner_impl import eval_on_param_mean, \
     eval_param_shifted_exp_val
 from mizore.transpiler.transpiler import Transpiler
 
@@ -15,7 +15,7 @@ import jax.numpy as jnp
 
 
 class CircuitRunner(Transpiler):
-    def __init__(self,n_proc=4):
+    def __init__(self, n_proc=4):
         super().__init__()
         self.n_proc = n_proc
         self.eps = 1e-4
@@ -27,14 +27,12 @@ class CircuitRunner(Transpiler):
         n_node = len(node_list)
         args_list = []
         for node in node_list:
-            args_list.append((node.circuit, node.obs, node.get_params_mean(),
-                      node.random_config))
-
+            args_list.append((node.circuit, node.obs_list, node.params.value(), node.config))
         params_mean = [arg[2] for arg in args_list]
         """
         Important thing when use Pool.
         Jax device array will be casted into numpy array when being passed through processes
-        Using numpy array will cause bugs when it operates with CompParam
+        Using numpy array will cause bugs when it operates with Value
         Therefore, we must cast it back to jax array by hand
         """
         with Pool(self.n_proc) as pool:
@@ -46,72 +44,71 @@ class CircuitRunner(Transpiler):
 
             if not self.shift_by_var:
                 for i in range(len(node_list)):
-                    node_list[i].exp_mean.set_value(exp_vals[i])
+                    set_expv(node_list[i], exp_vals[i])
 
             if self.shift_by_var:
                 meta_node_list = []
                 meta_params_mean = []
                 meta_exp_vals = []
                 for i in range(len(node_list)):
-                    if isinstance(node_list[i], MetaCircuitNode):
+                    if isinstance(node_list[i], DeviceCircuitNode):
                         meta_node_list.append(node_list[i])
                         meta_params_mean.append(params_mean[i])
                         meta_exp_vals.append(exp_vals[i])
                     else:
                         # If it is a normal QCircuitNode, set its expectation value
-                        node_list[i].exp_mean.set_value(exp_vals[i])
-                shift_by_vals = self.eval_shift_by_var(meta_node_list, meta_exp_vals, meta_params_mean, pool)
+                        set_expv(node_list[i], exp_vals[i])
+                shift_by_vars = self.eval_shift_by_var(meta_node_list, meta_exp_vals, meta_params_mean, pool)
 
                 for i in range(len(meta_node_list)):
-                    meta_node_list[i].exp_mean.set_value(exp_vals[i] + shift_by_vals[i])
-                    meta_node_list[i].exp_mean.eval_and_cache()
-
+                    # meta_node_list[i].expv.bind_to(exp_vals[i] + shift_by_vals[i])
+                    set_expv(meta_node_list[i], exp_vals[i] + shift_by_vars[i].value())
+                    # meta_node_list[i].expv.set_value(exp_vals[i] + shift_by_vars[i].value())
 
         return output_dict
 
     def eval_shift_by_var(self, node_list, exp_vals, params_mean, pool):
         n_node = len(node_list)
-        args_forward = [(node_list[i].circuit, node_list[i].obs, params_mean[i], self.eps,
-                         node_list[i].random_config) for i in range(n_node)]
-        args_backward = [(node_list[i].circuit, node_list[i].obs, params_mean[i], -self.eps,
-                          node_list[i].random_config) for i in range(n_node)]
+        args_forward = [(node_list[i].circuit, node_list[i].obs_list, params_mean[i], self.eps,
+                         node_list[i].config) for i in range(n_node)]
+        args_backward = [(node_list[i].circuit, node_list[i].obs_list, params_mean[i], -self.eps,
+                          node_list[i].config) for i in range(n_node)]
         args_second_grad = args_forward + args_backward
         # with Pool(self.n_proc) as pool:
         shifted_exp_vals = pool.starmap(eval_shifted_exps, args_second_grad)
         shift_by_vars = []
         for i in range(n_node):
             second_grad = (shifted_exp_vals[i] - 2 * exp_vals[i] + shifted_exp_vals[i + n_node]) / (self.eps ** 2)
-            second_grad = to_jax_array(second_grad.transpose())
-            node: MetaCircuitNode = node_list[i]
+            second_grad = jnp.transpose(second_grad)
+            node: DeviceCircuitNode = node_list[i]
             if node.circuit.n_param != 0:
-                shift_by_var = CompParam.unary_operator((node.params.var * second_grad / 2), lambda x: jnp.sum(x, axis=1))
-                # shift_by_var = jnp.sum(node.params.var.value() * second_grad / 2, axis=1) # Non-differentiable
+                # shift_by_var = Value.unary_operator((node.params.var * second_grad / 2), lambda x: jnp.sum(x, axis=1))
+                shift_by_var = Value(jnp.sum(node.params.var.value() * second_grad / 2, axis=1))  # Non-differentiable
             else:
-                shift_by_var = 0
+                shift_by_var = Value(0.0)
 
             shift_by_vars.append(shift_by_var)
         return shift_by_vars
 
 
-def eval_shifted_exps(circuit, obs, param, shift, random_config):
-    backend_ops = [ob.get_backend_operator() for ob in obs]
-    random_config = random_config if circuit.has_random else None
-    shifted_exp_vals = eval_param_shifted_exp_val(circuit, shift, param, backend_ops, random_config)
+def set_expv(node: QCircuitNode, value):
+    if not node.is_single_obs:
+        node.expv.set_value(value)
+    else:
+        node.expv.set_value(value[0])
+
+
+def eval_shifted_exps(circuit, obs_list, param, shift, config):
+    backend_ops = [ob.get_backend_operator() for ob in obs_list]
+    config = config if circuit.has_random else None
+    shifted_exp_vals = eval_param_shifted_exp_val(circuit, shift, param, backend_ops, config)
     return shifted_exp_vals
 
 
-def eval_node_and_time(circuit, obs, param_mean, random_config):
-    backend_ops = [ob.get_backend_operator() for ob in obs]
-    random_config = random_config if circuit.has_random else None
+def eval_node_and_time(circuit, obs_list, param_mean, config):
+    backend_ops = [ob.get_backend_operator() for ob in obs_list]
+    config = config if circuit.has_random else None
     time_start = time()
-    exp_vals = eval_on_param_mean(circuit, param_mean, backend_ops, random_config)
+    exp_vals = eval_on_param_mean(circuit, param_mean, backend_ops, config)
     time_end = time()
-    return (exp_vals, (time_end - time_start) * 1e6)
-
-
-"""
-for i in range(n_node):
-    backend_ops = [ob.get_backend_operator() for ob in node_list[i].obs]
-    second_grads_test = eval_second_grads(node_list[i].backend_circuit, exp_vals[i], param_mean[i].tolist(), backend_ops, random_config=node_list[i].random_config)
-print(second_grads_test-second_grads)
-"""
+    return exp_vals, (time_end - time_start) * 1e6

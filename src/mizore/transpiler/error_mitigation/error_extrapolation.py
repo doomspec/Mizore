@@ -1,19 +1,19 @@
 from copy import deepcopy
 from typing import List
 
+from mizore.comp_graph.value import Value
+from mizore.comp_graph.value import Variable
 from mizore.meta_circuit.block import Block
 from mizore.meta_circuit.post_processor import SimpleProcessor
 from mizore.backend_circuit.gate import Gate
 from mizore.comp_graph.comp_graph import GraphIterator
 
 from mizore.backend_circuit.noise import NoiseGate
-from mizore.comp_graph.node.mc_node import MetaCircuitNode
-from mizore.comp_graph.valvar import ValVar
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 
 from mizore.comp_graph.node.qc_node import QCircuitNode
 
 from mizore.transpiler.transpiler import Transpiler
-from mizore import np_array
 
 EPSILON = 1e-6
 
@@ -42,7 +42,7 @@ class ErrorExtrapolation(Transpiler):
             if "noisy" not in qcnode.tags:
                 print("Not every backend_circuit is noisy")
                 continue
-            mitigated_value = ValVar(0.0, 0.0)
+            mitigated_value = Value(0.0)
             coeff__square_sum = sum([abs(coeff)**2 for coeff in coeffs])
             for i_level in range(len(self.amp_list)):
                 noisy_circuit = qcnode.circuit.replica()
@@ -50,20 +50,21 @@ class ErrorExtrapolation(Transpiler):
                     noisy_circuit.add_post_process(NoiseAmplifier(self.amp_list[i_level]))
                 # Construct a new QCircuitNode
                 # Note that the shot number of old node will not be inherited
-                if isinstance(qcnode, MetaCircuitNode):
-                    noise_qcnode = MetaCircuitNode(noisy_circuit, qcnode.obs,
-                                                   name=qcnode.name + f"-ErrExtrp-{i_level}")
+                if isinstance(qcnode, DeviceCircuitNode):
+                    noise_qcnode = DeviceCircuitNode(noisy_circuit, qcnode.obs,
+                                                     name=qcnode.name + f"-ErrExtrp-{i_level}")
                     noise_qcnode.params.bind_to(qcnode.params)
                 else:
                     noise_qcnode = QCircuitNode(noisy_circuit, qcnode.obs,
                                             name=qcnode.name + f"-ErrExtrp-{i_level}")
-                noise_qcnode.random_config = qcnode.random_config
-                result_valvar = noise_qcnode()
+                noise_qcnode.config = qcnode.config
+                result_expv = noise_qcnode()
                 # TODO check this: Is this the optimal way to distribute the shot nums?
-                noise_qcnode.shot_num.set_value(qcnode.shot_num*(abs(coeffs[i_level])**2/coeff__square_sum))
-                mitigated_value = mitigated_value + (coeffs[i_level] * result_valvar)
-            qcnode.exp_mean.bind_to(mitigated_value.mean)
-            qcnode.exp_var.bind_to(mitigated_value.var)
+                noise_qcnode.shot_num.bind_to(qcnode.shot_num*(abs(coeffs[i_level])**2/coeff__square_sum))
+                mitigated_value = mitigated_value + (coeffs[i_level] * result_expv)
+            mitigated_value.name = "ErrorExtrapExpv"
+            qcnode.expv.bind_to(mitigated_value)
+            qcnode.expv.set_to_not_random()
             qcnode.in_graph = False
             node_changed = True
         if node_changed:

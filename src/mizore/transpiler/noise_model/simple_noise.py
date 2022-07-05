@@ -10,7 +10,7 @@ from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.backend_circuit.quantum_circuit import QuantumCircuit
 
 from mizore.backend_circuit.gate import Gate
-from mizore.comp_graph.node.mc_node import MetaCircuitNode
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 
 from mizore.comp_graph.node.qc_node import QCircuitNode
 
@@ -32,16 +32,17 @@ class DepolarizingNoise(Transpiler):
             self.two_qubit_rate = error_rate
 
     def transpile(self, graph_iterator: GraphIterator):
-        mcnode: MetaCircuitNode
+        node: DeviceCircuitNode
 
-        for mcnode in graph_iterator.by_type(MetaCircuitNode):
-            noisy_circuit: MetaCircuit = mcnode.circuit
+        for node in graph_iterator.by_type(DeviceCircuitNode):
+            noisy_circuit: MetaCircuit = node.circuit
             # Add noise make to the backend_circuit post processor
             noisy_circuit.add_post_process(SimpleNoiseMaker(self.error_rate, self.two_qubit_rate))
             noisy_circuit.has_random = True
+            node.tags.add("noisy")
+            node.name = node.name + "-Noisy"
+            node.expv.del_cache()
 
-            mcnode.tags.add("noisy")
-            mcnode.name = mcnode.name + "-Noisy"
 
 
 class SimpleNoiseMaker(SimpleProcessor):
