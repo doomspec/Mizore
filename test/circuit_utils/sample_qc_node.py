@@ -1,8 +1,10 @@
-from mizore.comp_graph.node.qc_node import QCircuitNode
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.operators import QubitOperator
 from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators.observable import Observable
+
+
 
 def simple_qc_node():
     n_qubit = 3
@@ -11,5 +13,5 @@ def simple_qc_node():
     #obs2 = Observable(n_qubit, QubitOperator('Z1')+QubitOperator('X1')+QubitOperator('Y1'))
     blk = RotationGroup(ops, fixed_angle_shift=[1.0, 1.0])
     bc = MetaCircuit(n_qubit, [blk, blk])
-    node = QCircuitNode(bc.get_fixed_param_circuit(), obs1)
+    node = DeviceCircuitNode(bc.get_fixed_param_circuit(), obs1)
     return node

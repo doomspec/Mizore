@@ -1,13 +1,13 @@
 from chemistry.simple_mols import simple_4_qubit_lih
 from mizore.backend_circuit.one_qubit_gates import X
-from mizore.comp_graph.node.mc_node import MetaCircuitNode
-from mizore.comp_graph.valvar import ValVar
+from mizore.comp_graph.node.dc_node import DeviceCircuitNode
+from mizore.comp_graph.value import Variable
 from mizore.meta_circuit.block.gate_group import GateGroup
 from mizore.operators import QubitOperator
 from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators.observable import Observable
-from mizore import np_array
+from mizore import np_array, jax_array
 
 def simple_pqc_node_one_obs(param_var = 0.001, name=None):
     n_qubit = 2
@@ -15,10 +15,10 @@ def simple_pqc_node_one_obs(param_var = 0.001, name=None):
     obs1 = Observable(n_qubit, QubitOperator('Z0')+QubitOperator('X0')+QubitOperator('Y0'))
     blk = RotationGroup(ops, fixed_angle_shift=[2.0, 1.0])
     bc = MetaCircuit(n_qubit, [blk, blk])
-    node = MetaCircuitNode(bc, [obs1], name=name)
+    node = DeviceCircuitNode(bc, [obs1], name=name)
     node.shot_num.set_value(1000)
-    params = ValVar([0.0]*4, [param_var]*4)
-    node.params.set_value(params)
+    params = Variable([0.0]*4, [param_var]*4)
+    node.params.bind_to(params)
     return node
 
 def simple_pqc_node(param_var = 0.001):
@@ -28,9 +28,9 @@ def simple_pqc_node(param_var = 0.001):
     obs2 = Observable(n_qubit, QubitOperator('Z1')+QubitOperator('X1'))
     blk = RotationGroup(ops, fixed_angle_shift=np_array([2.0, 1.0]))
     bc = MetaCircuit(n_qubit, [blk, blk])
-    node = MetaCircuitNode(bc, [obs1, obs2])
-    params = ValVar([0.0]*4, [param_var]*4)
-    node.params.set_value(params)
+    node = DeviceCircuitNode(bc, [obs1, obs2])
+    params = Variable([0.0]*4, [param_var]*4)
+    node.params.bind_to(params)
     return node
 
 def simple_large_pqc_node(param_var = 0.001):
@@ -44,8 +44,8 @@ def simple_large_pqc_node(param_var = 0.001):
     bc = MetaCircuit(n_qubit, [GateGroup(X(0)), RotationGroup(ops),
                                RotationGroup(ops2, fixed_angle_shift=[1.0])])
     n_param = bc.n_param
-    node = MetaCircuitNode(bc, [obs])
+    node = DeviceCircuitNode(bc, obs)
     node.shot_num.set_value(1000)
-    params = ValVar([0.0] * n_param, [param_var] * n_param)
-    node.params.set_value(params)
+    params = Variable([0.0]*n_param, [param_var]*n_param)
+    node.params.bind_to(params)
     return node
