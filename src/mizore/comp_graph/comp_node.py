@@ -1,7 +1,6 @@
 from copy import copy
 
 from mizore.utils.typed_log import TypedLog
-from mizore.comp_graph.deleted.valvar import ValVar
 from .immutable import Immutable
 
 from .value import Value
