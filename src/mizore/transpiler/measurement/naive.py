@@ -51,7 +51,7 @@ def get_qc_node_var_coeff(node: QCircuitNode, ob):
         prob = prob.real
         var = 4 * (1 - prob) * prob  # variance of two-point distribution
         if var < 0:
-            var += 1e-15
+            var += 1e-14
         weight_list.append(abs(weight) * sqrt(var))
     del state
     weight_sum = sum(weight_list)

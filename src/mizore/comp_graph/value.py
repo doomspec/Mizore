@@ -182,15 +182,6 @@ class Value:
         if len(var_list) == 0:
             return Value(0.0) # TODO: does shape matter?
 
-        """
-        for i in range(len(var_list)):
-            first_grad = jacfwd(lambda *args: eval_func(args), argnums=i)
-            first_grad_func_list.append(first_grad)
-            first_grad_contributions.append(Value.binary_operator((Value(args=var_list, operator=first_grad) ** 2),
-                                                                  var_list[i].var_constructed, multiply_and_sum))
-        first_grad_contribution = Value(args=[Value.array(first_grad_contributions)], operator=sum_first_axis)
-        """
-
         first_grad = jacfwd(eval_func)
 
         def variance_from_first_grad(variable, variable_var):
@@ -206,6 +197,7 @@ class Value:
             return first_grad_contribution
 
         assert False
+
         second_grad_contributions = []
         for i in range(len(var_list)):
             second_grad = jacfwd(first_grad_func_list[i], argnums=i)
@@ -269,18 +261,18 @@ class Value:
         self.approx_args = []
         self.approx_fun = None
 
-    """
+
     def del_cache_recursive(self):
-        Value.del_cache_recursive_(self, set())
+        Value._del_cache_recursive(self, set())
     
     @classmethod
-    def del_cache_recursive_(cls, param: Value, touched_param: Set[Value]):
+    def _del_cache_recursive(cls, param: Value, touched_param: Set[Value]):
         param.del_cache()
         for arg_param in param.args:
             if arg_param not in touched_param:
                 touched_param.add(arg_param)
-                Value.del_cache_recursive_(arg_param, touched_param)
-    """
+                Value._del_cache_recursive(arg_param, touched_param)
+
 
     def value(self):
         return self.get_value()
