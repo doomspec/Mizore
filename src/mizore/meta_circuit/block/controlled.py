@@ -20,9 +20,10 @@ class Controlled(Block):
         assert len(control_qset) == 1
 
     def get_gates(self, params):
-        controlled_gates = self.controlled_block.get_gates(params)
-        for i in range(len(controlled_gates)):
-            controlled_gates[i] = ControlledGate(controlled_gates[i], self.control_qset[0], self.trigger_values[0])
+        gates_to_control = self.controlled_block.get_gates(params)
+        controlled_gates = [None]*len(gates_to_control)
+        for i in range(len(gates_to_control)):
+            controlled_gates[i] = ControlledGate(gates_to_control[i], self.control_qset[0], self.trigger_values[0])
         return controlled_gates
 
     def get_inverse_block(self):

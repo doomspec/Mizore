@@ -6,9 +6,8 @@ from mizore.backend_circuit.gate import Gate
 from mizore.backend_circuit.rotations import SingleRotation
 from mizore.backend_circuit.utils import merge_qset
 
-
-
 from qulacs.gate import to_matrix_gate
+
 
 def default_reducer(ctrl: ControlledGate):
     gates = ctrl.controlled_gate.simple_reduce()
@@ -18,7 +17,9 @@ def default_reducer(ctrl: ControlledGate):
         gates[i] = ControlledGate(gates[i], ctrl.control_index, ctrl.trigger_value)
     return gates
 
+
 special_reducer = {}
+
 
 class ControlledGate(Gate):
     def __init__(self, controlled_gate: Gate, control_index: int, trigger_value=1):
@@ -43,6 +44,9 @@ class ControlledGate(Gate):
             reducer = default_reducer
         return reducer(self)
 
+    def __str__(self):
+        return f"Controlled by {self.control_index}\n     {str(self.controlled_gate)}"
+
 
 def PauliRotation_reducer(ctrl: ControlledGate):
     gates = ctrl.controlled_gate.simple_reduce()
@@ -53,9 +57,11 @@ def PauliRotation_reducer(ctrl: ControlledGate):
 
 special_reducer["PauliRotation"] = PauliRotation_reducer
 
+
 def GlobalPhase_reducer(ctrl: ControlledGate):
-    gates = [SingleRotation(3, ctrl.control_index, ctrl.controlled_gate.angle*2)]
+    sign = (-1)**ctrl.trigger_value
+    gates = [SingleRotation(3, ctrl.control_index, sign*ctrl.controlled_gate.angle)]  # TODO check the angle
     return gates
 
-special_reducer["GlobalPhase"] = GlobalPhase_reducer
 
+special_reducer["GlobalPhase"] = GlobalPhase_reducer

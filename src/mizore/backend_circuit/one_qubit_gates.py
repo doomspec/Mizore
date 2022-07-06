@@ -5,6 +5,9 @@ import numpy as np
 
 class GlobalPhase(Gate):
     def __init__(self, angle):
+        """
+        To implement e^{i*angle}
+        """
         Gate.__init__(self, (0,))
         self._angle = angle
         self._matrix = np.array([[np.exp(1j*angle), 0], [0, np.exp(1j*angle)]])
