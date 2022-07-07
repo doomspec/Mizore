@@ -23,6 +23,9 @@ pauli_index_char_map = {
 
 
 class SingleRotation(Gate):
+    """
+    Implement exp(iXt/2), exp(iYt/2) or exp(iZt/2)
+    """
 
     def __init__(self, pauli: int, target, angle: float):
         Gate.__init__(self, (target,))
@@ -40,7 +43,7 @@ class SingleRotation(Gate):
 
 class PauliRotation(Gate):
     """
-    Implement exp(iPt)
+    Implement exp(iPt/2), notice that here is no negative sign
     """
 
     def __init__(self, qset: List[int], pauli_ops: List[int], angle: float):
@@ -84,7 +87,7 @@ class PauliRotation(Gate):
 class SingleEvolve(Gate):
 
     def __init__(self, pauli_sum: QubitOperator, angle: float):
-        self.qset = pauli_sum.calc_qset()
+        self.qset = pauli_sum.get_qset()
         if len(self.qset) != 1:
             raise Exception("the pauli_sum inputted into SingleEvolve can only cover one qubit")
         Gate.__init__(self, self.qset)
@@ -98,7 +101,7 @@ class SingleEvolve(Gate):
 class DoubleEvolve(Gate):
 
     def __init__(self, pauli_sum: QubitOperator, angle: float):
-        self.qset = pauli_sum.calc_qset()
+        self.qset = pauli_sum.get_qset()
         if len(self.qset) != 2:
             raise Exception("the pauli_sum inputted into DoubleEvolve can only cover two qubits")
         Gate.__init__(self, self.qset)

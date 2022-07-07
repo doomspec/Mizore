@@ -43,6 +43,7 @@ _pauli_name_map = {
     "Z": 3
 }
 
+_pauli_index_map = ["I", "X", "Y", "Z"]
 
 #####
 
@@ -117,11 +118,27 @@ class QubitOperator(SymbolicOperator):
 
     ##### mizore modification
 
-    def qset_ops_weight(self):
-        for ops_tuple, weight in self.terms.items():
-            qset = [i for i, _ in ops_tuple]
-            ops = [_pauli_name_map[op] for _, op in ops_tuple]
+    def qset_op_weight(self):
+        for op_tuple, weight in self.terms.items():
+            qset = [i for i, _ in op_tuple]
+            ops = [_pauli_name_map[op] for _, op in op_tuple]
             yield qset, ops, weight
+
+    def get_qset(self):
+        qset_dict = {}
+        for ops_tuple, weight in self.terms.items():
+            for i, _ in ops_tuple:
+                qset_dict[i] = True
+        qset = list(qset_dict)
+        qset.sort()
+        return qset
+
+    @classmethod
+    def from_qset_op(cls, qset, pauli_op):
+        op_tuple = tuple([(qset[i], _pauli_index_map[pauli_op[i]]) for i in range(len(qset))])
+        op = QubitOperator()
+        op.terms[op_tuple] = 1.0
+        return op
 
     #####
 

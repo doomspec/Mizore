@@ -298,45 +298,6 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         # Return a tuple
         return tuple(processed_term)
 
-    ##### mizore modification
-    def ops(self, filter_empty=False):
-        """
-        return: paulistring, weight
-        """
-        if not filter_empty:
-            for item in self.terms.items():
-                yield item
-        else:
-            for item in self.terms.items():
-                if len(item[0]) != 0:
-                    yield item
-
-    def qset_ops_weight(self, filter_empty=False):
-        if not filter_empty:
-            for ops_tuple, weight in self.terms.items():
-                qset = [i for i, _ in ops_tuple]
-                ops = [op for _, op in ops_tuple]
-                yield qset, ops, weight
-        else:
-            for ops_tuple, weight in self.terms.items():
-                qset = [i for i, _ in ops_tuple]
-                ops = [op for _, op in ops_tuple]
-                if len(qset) == 0:
-                    continue
-                yield qset, ops, weight
-
-    @property
-    def qset(self):
-        qset_dict = {}
-        for ops_tuple, weight in self.terms.items():
-            for i, _ in ops_tuple:
-                qset_dict[i] = True
-        qset = list(qset_dict)
-        qset.sort()
-        return qset
-
-    #####
-
     @property
     def constant(self):
         """The value of the constant term."""

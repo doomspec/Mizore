@@ -27,7 +27,7 @@ class Observable:
         if obs.qulacs_operator is not None:
             return obs.qulacs_operator
         operator = GeneralQuantumOperator(obs.n_qubit)
-        for qset, pauli_ops, weight in obs._operator.qset_ops_weight():
+        for qset, pauli_ops, weight in obs._operator.qset_op_weight():
             operator.add_operator(weight, pauliword_to_qulacs_string(qset, pauli_ops))
         obs.qulacs_operator = operator
         return operator
