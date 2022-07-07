@@ -558,7 +558,7 @@ class Value:
         return tuple_param
 
     @classmethod
-    def array(cls, params: List[Value]):
+    def array(cls, params: List[Union[Value, List]]):
         array_param = Value(args=params, operator=(lambda *arg: jax_array(arg)))
         return array_param
 

@@ -14,7 +14,7 @@ from ..parameter import Parameter
 class DeviceCircuitNode(QCircuitNode):
 
     def __init__(self, circuit: MetaCircuit, obs: Union[List[Observable], Observable], name=None, config=None,
-                 calc_shift_by_param_var=True, param: Union[Value, None] = None, init_shot_num=10000):
+                 expv_shift_from_var=True, param: Union[Value, None] = None, init_shot_num=10000):
         super().__init__(circuit, obs, name=name, config=config)
 
         self.add_input_value("ShotNum", Parameter(to_jax_array(init_shot_num*len(self.obs_list))))
@@ -25,7 +25,7 @@ class DeviceCircuitNode(QCircuitNode):
         else:
             self.params.bind_to(param)
 
-        self.calc_shift_by_param_var = calc_shift_by_param_var
+        self.expv_shift_from_var = expv_shift_from_var
 
     @property
     def shot_num(self):

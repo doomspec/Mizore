@@ -15,7 +15,7 @@ import jax.numpy as jnp
 
 
 class CircuitRunner(Transpiler):
-    def __init__(self, n_proc=4):
+    def __init__(self, n_proc=4, shift_by_var=True):
         super().__init__()
         self.n_proc = n_proc
         self.eps = 1e-4
@@ -51,8 +51,9 @@ class CircuitRunner(Transpiler):
                 meta_params_mean = []
                 meta_exp_vals = []
                 for i in range(len(node_list)):
-                    if isinstance(node_list[i], DeviceCircuitNode):
-                        meta_node_list.append(node_list[i])
+                    node_i = node_list[i]
+                    if isinstance(node_i, DeviceCircuitNode) and node_i.expv_shift_from_var:
+                        meta_node_list.append(node_i)
                         meta_params_mean.append(params_mean[i])
                         meta_exp_vals.append(exp_vals[i])
                     else:
