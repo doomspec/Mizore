@@ -8,6 +8,8 @@ from mizore.backend_circuit.backend_state import BackendOperator
 from mizore.backend_circuit.gate import Gate
 from qulacs import QuantumCircuit as qulacsQCircuit
 
+from mizore.operators import QubitOperator
+
 
 class BackendCircuit:
     def __init__(self, n_qubit, gate_list: List[Gate]):
@@ -28,12 +30,18 @@ class BackendCircuit:
     def update_quantum_state(self, state: BackendState):
         self.qulacs_circuit.update_quantum_state(state.qulacs_state)
 
+    def get_expv_from_op(self, op: QubitOperator, dm=False):
+        backend_op = BackendOperator(op)
+        return self.get_expv(backend_op)
+
     def get_expv(self, ob: BackendOperator, dm=False):
         state = BackendState(self.n_qubit, dm=dm)
+        self.qulacs_circuit.update_quantum_state(state.qulacs_state)
         return ob.get_expectation_value(state)
 
     def get_many_expv(self, obs: List[BackendOperator], dm=False):
         state = BackendState(self.n_qubit, dm=dm)
+        self.qulacs_circuit.update_quantum_state(state.qulacs_state)
         res = [ob.get_expectation_value(state) for ob in obs]
         del state
         return res
