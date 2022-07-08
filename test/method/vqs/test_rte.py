@@ -36,7 +36,7 @@ def test_single_qubit():
         init_state = QuantumState(n_qubit)
         init_state.set_Haar_random_state()
 
-        evol_grad = real_evol_gradient(circuit, hamil, param)
+        evol_grad, A, C = real_evol_gradient(circuit, hamil, param)
 
         cg = CompGraph([evol_grad])
         CircuitRunner() | cg

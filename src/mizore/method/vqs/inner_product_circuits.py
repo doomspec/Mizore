@@ -17,7 +17,6 @@ import numpy as np
 
 
 def diff_inner_product_real(circuit: MetaCircuit, index1, index2, param: Value):
-
     new_blocks = circuit.blocks
     n_qubit = circuit.n_qubit
 
@@ -47,7 +46,7 @@ def diff_inner_product_real(circuit: MetaCircuit, index1, index2, param: Value):
 
     expv = node()
 
-    return expv * 0.25 * block1.weight* block2.weight
+    return expv * 0.25 * block1.weight * block2.weight
 
 
 def A_mat_real(circuit: MetaCircuit, param: Value):
@@ -56,7 +55,7 @@ def A_mat_real(circuit: MetaCircuit, param: Value):
     for i in range(n_param):
         i_block1, _ = circuit.get_block_index_by_param_index(i)
         weight = circuit._blocks[i_block1].weight
-        A[i][i] = Value(0.25*(weight**2)) # Only work for exp(-i/2 \theta * weight)
+        A[i][i] = Value(0.25 * (weight ** 2))  # Only work for exp(-i/2 \theta * weight)
         for j in range(i + 1, n_param):
             A[i][j] = diff_inner_product_real(circuit, i, j, param)
             A[j][i] = A[i][j]  # .conjugate()
@@ -65,7 +64,7 @@ def A_mat_real(circuit: MetaCircuit, param: Value):
     return A
 
 
-def diff_pauli_hamil_inner_product_imag(circuit, index, qset_op_weight, param: Value):
+def diff_pauli_hamil_inner_product(circuit, index, qset_op_weight, param: Value, phase_shift):
     new_blocks = circuit.blocks
     n_qubit = circuit.n_qubit
 
@@ -80,7 +79,7 @@ def diff_pauli_hamil_inner_product_imag(circuit, index, qset_op_weight, param: V
 
     new_blocks.append(diff_block_pauli)
     new_blocks.insert(i_block + 1, diff_block)
-    new_blocks.insert(0, GateGroup(SingleRotation(3, n_qubit, -pi / 2)))
+    new_blocks.insert(0, GateGroup(SingleRotation(3, n_qubit, phase_shift)))
     new_blocks.insert(0, GateGroup(Hadamard(n_qubit)))
 
     new_circuit = MetaCircuit(circuit.n_qubit + 1, new_blocks)
@@ -88,8 +87,12 @@ def diff_pauli_hamil_inner_product_imag(circuit, index, qset_op_weight, param: V
     node = DeviceCircuitNode(new_circuit, Observable(new_circuit.n_qubit, QubitOperator(f"X{n_qubit}")),
                              name="DiffHamilInnerProd", param=param)
 
-    exp_valvar = node()
-    return exp_valvar * (0.5 * qset_op_weight[2] * block.weight)
+    expv = node()
+    return expv * (0.5 * qset_op_weight[2] * block.weight)
+
+
+def diff_pauli_hamil_inner_product_imag(circuit, index, qset_op_weight, param: Value):
+    return diff_pauli_hamil_inner_product(circuit, index, qset_op_weight, param, -pi / 2)
 
 
 def C_mat_imag(circuit: MetaCircuit, operator: QubitOperator, param: Value):
@@ -98,6 +101,22 @@ def C_mat_imag(circuit: MetaCircuit, operator: QubitOperator, param: Value):
         diff_hamil_innerp = Value(0.0)
         for qset_op_weight in operator.qset_op_weight():
             pauli_innerp = diff_pauli_hamil_inner_product_imag(circuit, i_param, qset_op_weight, param)
+            diff_hamil_innerp = diff_hamil_innerp + pauli_innerp
+        C.append(diff_hamil_innerp)
+    C = Value.array(C)
+    return C
+
+
+def diff_pauli_hamil_inner_product_real(circuit, index, qset_op_weight, param: Value):
+    return diff_pauli_hamil_inner_product(circuit, index, qset_op_weight, param, 0.0)
+
+
+def C_mat_real(circuit: MetaCircuit, operator: QubitOperator, param: Value):
+    C = []
+    for i_param in range(circuit.n_param):
+        diff_hamil_innerp = Value(0.0)
+        for qset_op_weight in operator.qset_op_weight():
+            pauli_innerp = diff_pauli_hamil_inner_product_real(circuit, i_param, qset_op_weight, param)
             diff_hamil_innerp = diff_hamil_innerp + pauli_innerp
         C.append(diff_hamil_innerp)
     C = Value.array(C)
