@@ -11,8 +11,9 @@ from mizore.transpiler.noise_model.simple_noise import DepolarizingNoise
 
 
 qnode = simple_large_pqc_node(param_var = 0.000)
-qnode.random_config = {"use_dm": True}
-#qnode.random_config = {"n_exp": 10000}
+qnode.shot_num.set_value(100000)
+qnode.config = {"use_dm": True}
+#qnode.config = {"n_exp": 10000}
 
 exp_valvar = qnode()
 res = exp_valvar
@@ -21,20 +22,27 @@ cg = CompGraph([res])
 
 SimpleReducer() | cg
 CircuitRunner() | cg
-InfiniteMeasurement() | cg
-true_val = res.mean.value()
-print("Val without err", res.mean.value())
-
+NaiveMeasurement() | cg
+true_val = res.value()
+print("Val without err", res.value())
+print("Variance: ", res.var.value())
+cg.del_all_cache()
 
 DepolarizingNoise(0.1) | cg
+NaiveMeasurement() | cg
 CircuitRunner() | cg
-print("Error with noise: ", res.mean.value() - true_val)
+print("Result with noise: ", res.value())
+print("Variance: ", res.var.value())
+cg.del_all_cache()
 
+ErrorExtrapolation([1.1, 1.2]) | cg
+NaiveMeasurement() | cg
+for node in cg.all():
+    CircuitRunner() | node
 
-ErrorExtrapolation([1.1,1.2]) | cg
-InfiniteMeasurement() | cg
-CircuitRunner() | cg
-print("Error after mitigation: ", res.mean.value() - true_val)
+print("Result after mitigation: ", res.value())
+eval_func, var_list, init_list = res.get_eval_on_var()
+print("Variance: ", res.var.value())
 
 exit()
 

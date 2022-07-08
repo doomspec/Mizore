@@ -11,7 +11,6 @@ from mizore.meta_circuit.block.gate_group import GateGroup
 from mizore.meta_circuit.block.rotation import Rotation
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators import QubitOperator
-from mizore.operators.observable import Observable
 
 import numpy as np
 
@@ -41,7 +40,7 @@ def diff_inner_product_real(circuit: MetaCircuit, index1, index2, param: Value):
     new_blocks.insert(0, GateGroup(Hadamard(n_qubit)))
 
     new_circuit = MetaCircuit(circuit.n_qubit + 1, new_blocks)
-    obs = Observable(new_circuit.n_qubit, QubitOperator(f"X{n_qubit}"))
+    obs = QubitOperator(f"X{n_qubit}")
     node = DeviceCircuitNode(new_circuit, obs, name="DiffInnerProd", param=param)
 
     expv = node()
@@ -84,7 +83,7 @@ def diff_pauli_hamil_inner_product(circuit, index, qset_op_weight, param: Value,
 
     new_circuit = MetaCircuit(circuit.n_qubit + 1, new_blocks)
 
-    node = DeviceCircuitNode(new_circuit, Observable(new_circuit.n_qubit, QubitOperator(f"X{n_qubit}")),
+    node = DeviceCircuitNode(new_circuit, QubitOperator(f"X{n_qubit}"),
                              name="DiffHamilInnerProd", param=param)
 
     expv = node()

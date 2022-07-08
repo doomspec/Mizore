@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from copy import copy
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from mizore.meta_circuit.block.gate_group import GateGroup
 from mizore.backend_circuit.gate import Gate
 from mizore.meta_circuit.block.block import Block
-from qulacs import QuantumCircuit as qulacsQCircuit, QuantumState
+from mizore.backend_circuit.backend_circuit import BackendCircuit, BackendState, BackendOperator
 from mizore import np_array
+from mizore.operators import QubitOperator
 
 
 class MetaCircuit:
@@ -97,20 +98,23 @@ class MetaCircuit:
         gate_list = self.post_process(origin_gates_list, blocks)
         return gate_list
 
-    def get_backend_circuit(self, params=None) -> qulacsQCircuit:
-        qulacs_circuit = qulacsQCircuit(self.n_qubit)
-        for gate in self.get_gates(params):
-            qulacs_circuit.add_gate(gate.qulacs_gate)
-        return qulacs_circuit
+    def get_backend_circuit(self, params=None) -> BackendCircuit:
+        backend_circuit = BackendCircuit(self.n_qubit, self.get_gates(params))
+        return backend_circuit
 
-    def get_expectation_value(self, obs, params=None):
-        qulacs_circuit = self.get_backend_circuit(params)
-        state = QuantumState(self.n_qubit)
-        qulacs_circuit.update_quantum_state(state)
-        if hasattr(obs, "get_expectation_value"):
-            return obs.get_expectation_value(state)
+    def get_backend_state(self, params=None, dm=False):
+        backend_circuit = self.get_backend_circuit(params)
+        return backend_circuit.get_quantum_state(dm=dm)
+
+    def get_expectation_value(self, op: Union[QubitOperator, BackendOperator], params=None, use_dm=False):
+        backend_circuit = self.get_backend_circuit(params)
+        backend_state = BackendState(self.n_qubit, dm=use_dm)
+        backend_circuit.update_quantum_state(backend_state)
+        if isinstance(op, BackendOperator):
+            return op.get_expectation_value(backend_state)
         else:
-            return obs.get_backend_operator().get_expectation_value(state)
+            backend_op = BackendOperator(op)
+            return backend_op.get_expectation_value(backend_state)
 
     def get_block_index_by_param_index(self, param_index) -> Tuple[int, int]:
         if self.param_delimiter is None:

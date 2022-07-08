@@ -21,13 +21,13 @@ def imag_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Union[
     return Value.binary_operator(A, C, lambda A_, b: lstsq(A_, -b)[0]), A, C
 
 
-def get_residue(A: Value, C: Value):
-    A_value = A.value()
-    C_value = C.value()
+def get_residue_imag_evol(A_real: Value, C_real: Value):
+    A_value = A_real.value()
+    C_value = C_real.value()
 
     def residue_fun(A_, b_):
         # we are solving Ax=-C, so the residue is Ax+C
         return A_value @ lstsq(A_, b_)[0] + C_value
 
-    residue = Value.binary_operator(A, C, residue_fun)
+    residue = Value.binary_operator(A_real, C_real, residue_fun)
     return residue

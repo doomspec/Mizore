@@ -1,19 +1,18 @@
 from typing import List, Union
 
 from mizore.meta_circuit.meta_circuit import MetaCircuit
-from mizore.operators.observable import Observable
 
 from mizore.comp_graph.value import Value
 from .qc_node import QCircuitNode
 from mizore import jax_array, to_jax_array
-from ..immutable import Immutable
 
 from ..parameter import Parameter
+from ...operators import QubitOperator
 
 
 class DeviceCircuitNode(QCircuitNode):
 
-    def __init__(self, circuit: MetaCircuit, obs: Union[List[Observable], Observable], name=None, config=None,
+    def __init__(self, circuit: MetaCircuit, obs: Union[List[QubitOperator], QubitOperator], name=None, config=None,
                  expv_shift_from_var=True, param: Union[Value, None] = None, init_shot_num=10000):
         super().__init__(circuit, obs, name=name, config=config)
 

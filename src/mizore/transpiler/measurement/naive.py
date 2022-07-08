@@ -1,7 +1,10 @@
 from qulacs import QuantumState
+
+from mizore.backend_circuit.backend_op import BackendOperator
 from mizore.comp_graph.comp_graph import GraphIterator
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.node.qc_node import QCircuitNode
+from mizore.operators import QubitOperator
 from mizore.operators.qulacs import iter_qulacs_ops
 from mizore.transpiler.transpiler import Transpiler
 from mizore import jax_array
@@ -37,16 +40,16 @@ class NaiveMeasurement(Transpiler):
 
 
 def get_qc_node_var_coeff(node: QCircuitNode, ob):
-    circuit = node.circuit.get_backend_circuit()
-    state = QuantumState(node.circuit.n_qubit)
-    circuit.update_quantum_state(state)
+    # TODO here density matrix is not considered. I don't know when to use dm
+    state = node.circuit.get_backend_circuit().get_quantum_state()
     weight_list = []  # contains a_i*sqrt(Var(<O_i>)) for H=a_iO_i
-    for qulacs_op, weight in iter_qulacs_ops(ob.operator, node.circuit.n_qubit):
-        # TODO check this
+    for qset, op, weight in ob.qset_op_weight():
+        backend_op = BackendOperator(QubitOperator.from_qset_op(qset, op))
+        # TODO check this. Maybe write a test
         # The probability of getting 1.
         # (1-prob) is the probability of getting -1
         # In the state ignorant mode, prob is assumed to be 0.5 to maximize the variance
-        prob = (qulacs_op.get_expectation_value(state) + 1) / 2
+        prob = (backend_op.get_expectation_value(state) + 1) / 2
         assert prob.imag < 1e-8  # In case the imaginary part is not zero, there must be a bug
         prob = prob.real
         var = 4 * (1 - prob) * prob  # variance of two-point distribution

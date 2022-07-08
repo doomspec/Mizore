@@ -1,5 +1,6 @@
 from qulacs import QuantumState
 
+from mizore.backend_circuit.backend_state import BackendState
 from mizore.comp_graph.comp_graph import CompGraph
 from mizore.comp_graph.value import Value
 from mizore.meta_circuit.block.exact_evolution import ExactEvolution
@@ -33,7 +34,7 @@ def test_single_qubit():
         curr_time = 0.0
         param = Value([0.0]*circuit.n_param)
 
-        init_state = QuantumState(n_qubit)
+        init_state = BackendState(n_qubit)
         init_state.set_Haar_random_state()
 
         evol_grad, A, C = real_evol_gradient(circuit, hamil, param)

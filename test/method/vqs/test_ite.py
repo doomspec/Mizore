@@ -5,7 +5,6 @@ from mizore.meta_circuit.block.rotation import Rotation
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.method.vqs.imag_time_evol import imag_evol_gradient
 from mizore.operators import QubitOperator
-from mizore.operators.observable import Observable
 from mizore.operators.spectrum import get_first_k_eigenstates
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
 from numpy.testing import assert_allclose
@@ -48,12 +47,12 @@ def test_single_qubit():
 
     energy_list = []
     for i in range(50):
-        energy = DeviceCircuitNode(circuit, Observable(n_qubit, hamil), param=param)()
+        energy = DeviceCircuitNode(circuit, hamil, param=param)()
         energy_list.append(energy)
         evol_grad, A_real, C_real = imag_evol_gradient(circuit, hamil, param)
         param = param - evol_grad * step_size
         curr_time += step_size
-    energy = DeviceCircuitNode(circuit, Observable(n_qubit, hamil), param=param)()
+    energy = DeviceCircuitNode(circuit, hamil, param=param)()
     energy_list.append(energy)
 
     cg = CompGraph(energy_list)

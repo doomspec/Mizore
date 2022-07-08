@@ -1,9 +1,8 @@
 from copy import copy
 from typing import Union, List
 
-from mizore.comp_graph.immutable import Immutable
 from mizore.meta_circuit.meta_circuit import MetaCircuit
-from mizore.operators.observable import Observable
+from mizore.operators import QubitOperator
 
 from mizore.comp_graph.value import Value
 from mizore.comp_graph.comp_node import CompNode
@@ -20,10 +19,10 @@ default_config = {
 
 class QCircuitNode(CompNode):
 
-    def __init__(self, circuit: MetaCircuit, obs: Union[List[Observable], Observable], name=None, config=None):
+    def __init__(self, circuit: MetaCircuit, obs: Union[List[QubitOperator], QubitOperator], name=None, config=None):
         super().__init__(name=name)
         self._circuit: MetaCircuit = circuit
-        self._obs: List[Observable]
+        self._obs: List[QubitOperator]
         self._single_obs = False
 
         self.is_single_obs = False

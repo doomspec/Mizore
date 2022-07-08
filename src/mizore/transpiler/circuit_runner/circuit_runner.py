@@ -4,7 +4,7 @@ from mizore.comp_graph.comp_graph import GraphIterator
 from mizore.comp_graph.value import Value
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.node.qc_node import QCircuitNode
-
+from mizore.backend_circuit.backend_circuit import BackendOperator
 from mizore.transpiler.circuit_runner._circuit_runner_impl import eval_on_param_mean, \
     eval_param_shifted_exp_val
 from mizore.transpiler.transpiler import Transpiler
@@ -100,14 +100,14 @@ def set_expv(node: QCircuitNode, value):
 
 
 def eval_shifted_exps(circuit, obs_list, param, shift, config):
-    backend_ops = [ob.get_backend_operator() for ob in obs_list]
+    backend_ops = [BackendOperator(ob) for ob in obs_list]
     config = config if circuit.has_random else None
     shifted_exp_vals = eval_param_shifted_exp_val(circuit, shift, param, backend_ops, config)
     return shifted_exp_vals
 
 
 def eval_node_and_time(circuit, obs_list, param_mean, config):
-    backend_ops = [ob.get_backend_operator() for ob in obs_list]
+    backend_ops = [BackendOperator(ob) for ob in obs_list]
     config = config if circuit.has_random else None
     time_start = time()
     exp_vals = eval_on_param_mean(circuit, param_mean, backend_ops, config)

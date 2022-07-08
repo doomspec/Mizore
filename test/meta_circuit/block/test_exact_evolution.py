@@ -1,5 +1,7 @@
 from qulacs import QuantumState
 
+from mizore.backend_circuit.backend_circuit import BackendCircuit
+from mizore.backend_circuit.backend_state import BackendState
 from mizore.backend_circuit.multi_qubit_gates import PauliGate
 from mizore.meta_circuit.block.exact_evolution import ExactEvolution
 from mizore.meta_circuit.block.gate_group import GateGroup
@@ -17,7 +19,7 @@ def test_compare_to_simple_rotation():
     op = QubitOperator.from_qset_op(qset, pauli)
     time = 1.0
     for i in range(10):
-        init_state = QuantumState(n_qubit)
+        init_state = BackendState(n_qubit)
         init_state.set_Haar_random_state()
         circuit1 = MetaCircuit(n_qubit, blocks=[GateGroup(PauliGate([1], [1])), ExactEvolution(op, init_time=time)])
         state1 = init_state.copy()

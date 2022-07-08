@@ -1,5 +1,6 @@
 from typing import List, Dict
-from qulacs import QuantumState, DensityMatrix
+from mizore.backend_circuit.backend_circuit import BackendState
+from mizore.backend_circuit.backend_op import BackendOperator
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore import jax_array, to_jax_array, to_np_array
 # import numpy as np
@@ -8,20 +9,16 @@ import jax.numpy as jnp
 Variance_To_Neglect = 1e-12
 
 
-def eval_on_param_mean(circuit: MetaCircuit, params, qulacs_ops, config=None):
-    qulacs_circuit = circuit.get_backend_circuit(params)
+def eval_on_param_mean(circuit: MetaCircuit, params, backend_ops: List[BackendOperator], config=None):
+    backend_circuit = circuit.get_backend_circuit(params)
     # Run and update the state
     res: List[complex]
     if config is None:
-        state = QuantumState(circuit.n_qubit)
-        qulacs_circuit.update_quantum_state(state)
-        res = get_exp_value_list(qulacs_ops, state)
+        res = backend_circuit.get_many_expv(backend_ops)
     else:  # When the task is probabilistic
         config: Dict
-        if config.get("use_dm", False):
-            state = DensityMatrix(circuit.n_qubit)
-            qulacs_circuit.update_quantum_state(state)
-            res = get_exp_value_list(qulacs_ops, state)
+        if config.get("use_dm", False): # If use_dm = True
+            res = backend_circuit.get_many_expv(backend_ops, dm=True)
         else:
             n_exp = config["n_exp"]
             if n_exp == 1:
@@ -30,10 +27,7 @@ def eval_on_param_mean(circuit: MetaCircuit, params, qulacs_ops, config=None):
             for i in range(n_exp):
                 # TODO This process can be improved a lot
                 # See https://arxiv.org/abs/1904.11590
-                state = QuantumState(circuit.n_qubit)
-                qulacs_circuit.update_quantum_state(state)
-                res_list[i] = get_exp_value_list(qulacs_ops, state)
-                del state
+                res_list[i] = backend_circuit.get_many_expv(backend_ops)
             res_list = jax_array(res_list)
             res = jnp.average(res_list, axis=0)
     for i in range(len(res)):
@@ -48,32 +42,34 @@ def get_exp_value_list(ops, state):
     return [op.get_expectation_value(state) for op in ops]
 
 
-def eval_param_shifted_exp_val(circuit: MetaCircuit, shift, params, qulacs_ops, config=None):
+def eval_param_shifted_exp_val(circuit: MetaCircuit, shift, params, backend_ops: List[BackendOperator], config=None):
+    # TODO this is buggy!!!!!
     shifted_exps = []
     for param_i in range(circuit.n_param):
         params[param_i] += shift
         circuit.temp_params = to_np_array(params)
-        exp_val = eval_on_param_mean(circuit, params, qulacs_ops,
+        exp_val = eval_on_param_mean(circuit, params, backend_ops,
                                      config=config)
         params[param_i] -= shift
         shifted_exps.append(exp_val)
     return to_jax_array(shifted_exps)
 
 
-def eval_second_grads(circuit: MetaCircuit, exp_on_param_mean, params, qulacs_ops, eps=1e-4, config=None):
+def eval_second_grads(circuit: MetaCircuit, exp_on_param_mean, params,
+                      backend_ops: List[BackendOperator], eps=1e-4, config=None):
     second_grad_list = []
     for param_i in range(circuit.n_param):
         # If the variance is too small, we skip the calculation
         # if params_var[param_i] < Variance_To_Neglect:
-        #    second_grad_list.append([0.0] * len(qulacs_ops))
+        #    second_grad_list.append([0.0] * len(backend_ops))
         #    continue
         params[param_i] += eps
         circuit.temp_params = to_np_array(params)
-        exp_val_forward = eval_on_param_mean(circuit, params, qulacs_ops,
+        exp_val_forward = eval_on_param_mean(circuit, params, backend_ops,
                                              config=config)
         params[param_i] -= 2 * eps
         circuit.temp_params = to_np_array(params)
-        exp_val_backward = eval_on_param_mean(circuit, params, qulacs_ops,
+        exp_val_backward = eval_on_param_mean(circuit, params, backend_ops,
                                               config=config)
         params[param_i] += eps
         # grads = (exp_val_forward - exp_val_backward) / (2 * eps)
