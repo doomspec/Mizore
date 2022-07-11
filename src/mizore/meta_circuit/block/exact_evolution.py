@@ -33,6 +33,10 @@ class ExactEvolution(Block):
 
         self.to_decompose = to_decompose
 
+    @property
+    def hamil(self):
+        return self._hamil
+
     def diagonalize(self):
         hamiltonian_mat = get_operator_matrix(self._hamil, n_qubits=len(self.qset))
         self.vec_D, self.mat_P = eigh(hamiltonian_mat)
@@ -46,6 +50,7 @@ class ExactEvolution(Block):
     def get_gates(self, params) -> List[Gate]:
         if self.vec_D is None:
             self.diagonalize()
-        time_evol_op = self.get_evolution_operator(params[0] + self._fixed_param[0])
-        time_evol_gate = MatrixGate(self.qset, time_evol_op)
+        evol_time = params[0] + self._fixed_param[0]
+        time_evol_op = self.get_evolution_operator(evol_time)
+        time_evol_gate = MatrixGate(self.qset, time_evol_op, annotate=f"Evol {evol_time}")
         return [time_evol_gate]

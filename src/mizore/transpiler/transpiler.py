@@ -9,9 +9,6 @@ class Transpiler:
         self.name = name if name is not None else type(self).__name__
         self.types = []
 
-    def transpiler_param_output(self):
-        return None
-
     def __rshift__(self, other):
         return self.transpile([other])
 

@@ -10,10 +10,13 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 """QubitOperator stores a sum of Pauli operators acting on qubits."""
+from __future__ import annotations
+from typing import Tuple
 
 import numpy
 
 from .symbolic_operator import SymbolicOperator
+from copy import deepcopy
 
 # Define products of all Pauli operators for symbolic multiplication.
 _PAULI_OPERATOR_PRODUCTS = {
@@ -148,6 +151,17 @@ class QubitOperator(SymbolicOperator):
         op.terms[op_tuple] = 1.0
         return op
 
+    def replica(self):
+        return deepcopy(self)
+
+    def remove_constant(self) -> Tuple[QubitOperator, complex]:
+        new_op = self.replica()
+        if () in new_op.terms.keys():
+            const = new_op.terms[()]
+            del new_op.terms[()]
+        else:
+            const = 0.0
+        return new_op, const
     #####
 
     def renormalize(self):

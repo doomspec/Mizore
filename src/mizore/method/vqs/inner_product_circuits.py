@@ -16,7 +16,7 @@ import numpy as np
 
 
 def diff_inner_product_real(circuit: MetaCircuit, index1, index2, param: Value):
-    new_blocks = circuit.blocks
+    new_blocks = circuit.block_list
     n_qubit = circuit.n_qubit
 
     i_block1, _ = circuit.get_block_index_by_param_index(index1)
@@ -64,7 +64,7 @@ def A_mat_real(circuit: MetaCircuit, param: Value):
 
 
 def diff_pauli_hamil_inner_product(circuit, index, qset_op_weight, param: Value, phase_shift):
-    new_blocks = circuit.blocks
+    new_blocks = circuit.block_list()
     n_qubit = circuit.n_qubit
 
     i_block, _ = circuit.get_block_index_by_param_index(index)

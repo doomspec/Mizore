@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import copy
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Iterable
 
 from mizore.meta_circuit.block.gates import Gates
 from mizore.backend_circuit.gate import Gate
@@ -43,10 +43,15 @@ class MetaCircuit:
         self.add_blocks([Gates(*gates)])
 
     @property
-    def blocks(self):
+    def blocks(self) -> Iterable[Block]:
         """
         :return: a copy of the list of blocks
         """
+        for block in self._blocks:
+            yield block
+
+    @property
+    def block_list(self):
         return self._blocks[:]
 
     def add_blocks(self, blocks: List[Block]):
