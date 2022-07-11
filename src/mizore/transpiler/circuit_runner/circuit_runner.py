@@ -15,11 +15,11 @@ import jax.numpy as jnp
 
 
 class CircuitRunner(Transpiler):
-    def __init__(self, n_proc=4, shift_by_var=True):
+    def __init__(self, n_proc=4, shift_by_var=False):
         super().__init__()
         self.n_proc = n_proc
         self.eps = 1e-4
-        self.shift_by_var = True
+        self.shift_by_var = shift_by_var  # this option is buggy
 
     def transpile(self, target_nodes: GraphIterator):
         output_dict = {}

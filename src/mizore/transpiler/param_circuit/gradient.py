@@ -34,7 +34,7 @@ class GradientCircuit(Transpiler):
                     shift_i += 1
                 param_grads.append(param_grad)
             param_grads = Value.unary_operator(Value.array(param_grads), transpose)
-            param_grads.linear_approx = True
+            param_grads.const_approx = True
             param_grads.name = f"{pqcnode.name}-ParamGrads"
             output_dict[pqcnode] = param_grads
         if self.add_grad_to_graph:
