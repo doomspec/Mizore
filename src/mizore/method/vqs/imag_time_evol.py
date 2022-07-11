@@ -15,8 +15,10 @@ def imag_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Union[
     """
     if param is None:
         param = Value([0.0] * circuit.n_param)
+
     A = A_mat_real(circuit, param)
     C = C_mat_real(circuit, hamil, param)
+
     # Here we use -b instead of lstsq because we are solving Ax=-C
     return Value.binary_operator(A, C, lambda A_, b: lstsq(A_, -b)[0]), A, C
 

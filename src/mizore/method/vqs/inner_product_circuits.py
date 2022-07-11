@@ -7,7 +7,7 @@ from mizore.backend_circuit.rotations import SingleRotation
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.value import Value
 from mizore.meta_circuit.block.controlled import Controlled
-from mizore.meta_circuit.block.gate_group import GateGroup
+from mizore.meta_circuit.block.gates import Gates
 from mizore.meta_circuit.block.rotation import Rotation
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators import QubitOperator
@@ -28,8 +28,8 @@ def diff_inner_product_real(circuit: MetaCircuit, index1, index2, param: Value):
     assert isinstance(block1, Rotation)
     assert isinstance(block2, Rotation)
 
-    diff_1 = Controlled(GateGroup(PauliGate(block1.qset, block1.pauli_ops), GlobalPhase(-pi / 2)), (n_qubit,), [0])
-    diff_2 = Controlled(GateGroup(PauliGate(block2.qset, block2.pauli_ops), GlobalPhase(-pi / 2)), (n_qubit,), [1])
+    diff_1 = Controlled(Gates(PauliGate(block1.qset, block1.pauli_ops), GlobalPhase(-pi / 2)), (n_qubit,), [0])
+    diff_2 = Controlled(Gates(PauliGate(block2.qset, block2.pauli_ops), GlobalPhase(-pi / 2)), (n_qubit,), [1])
 
     if i_block2 < i_block1:
         i_block1, i_block2 = i_block2, i_block1
@@ -37,7 +37,7 @@ def diff_inner_product_real(circuit: MetaCircuit, index1, index2, param: Value):
     new_blocks = new_blocks[:i_block2 + 1]
     new_blocks.insert(i_block2 + 1, diff_2)
     new_blocks.insert(i_block1 + 1, diff_1)
-    new_blocks.insert(0, GateGroup(Hadamard(n_qubit)))
+    new_blocks.insert(0, Gates(Hadamard(n_qubit)))
 
     new_circuit = MetaCircuit(circuit.n_qubit + 1, new_blocks)
     obs = QubitOperator(f"X{n_qubit}")
@@ -72,14 +72,15 @@ def diff_pauli_hamil_inner_product(circuit, index, qset_op_weight, param: Value,
     block = new_blocks[i_block]
 
     assert isinstance(block, Rotation)
+    assert len(qset_op_weight[0]) != 0
 
-    diff_block = Controlled(GateGroup(PauliGate(block.qset, block.pauli_ops), GlobalPhase(-np.pi / 2)), (n_qubit,), [0])
-    diff_block_pauli = Controlled(GateGroup(PauliGate(qset_op_weight[0], qset_op_weight[1])), (n_qubit,), [1])
+    diff_block = Controlled(Gates(PauliGate(block.qset, block.pauli_ops), GlobalPhase(-np.pi / 2)), (n_qubit,), [0])
+    diff_block_pauli = Controlled(Gates(PauliGate(qset_op_weight[0], qset_op_weight[1])), (n_qubit,), [1])
 
     new_blocks.append(diff_block_pauli)
     new_blocks.insert(i_block + 1, diff_block)
-    new_blocks.insert(0, GateGroup(SingleRotation(3, n_qubit, phase_shift)))
-    new_blocks.insert(0, GateGroup(Hadamard(n_qubit)))
+    new_blocks.insert(0, Gates(SingleRotation(3, n_qubit, phase_shift)))
+    new_blocks.insert(0, Gates(Hadamard(n_qubit)))
 
     new_circuit = MetaCircuit(circuit.n_qubit + 1, new_blocks)
 
@@ -98,7 +99,7 @@ def C_mat_imag(circuit: MetaCircuit, operator: QubitOperator, param: Value):
     C = []
     for i_param in range(circuit.n_param):
         diff_hamil_innerp = Value(0.0)
-        for qset_op_weight in operator.qset_op_weight():
+        for qset_op_weight in operator.qset_op_weight_omit_const():
             pauli_innerp = diff_pauli_hamil_inner_product_imag(circuit, i_param, qset_op_weight, param)
             diff_hamil_innerp = diff_hamil_innerp + pauli_innerp
         C.append(diff_hamil_innerp)
@@ -114,7 +115,7 @@ def C_mat_real(circuit: MetaCircuit, operator: QubitOperator, param: Value):
     C = []
     for i_param in range(circuit.n_param):
         diff_hamil_innerp = Value(0.0)
-        for qset_op_weight in operator.qset_op_weight():
+        for qset_op_weight in operator.qset_op_weight_omit_const():
             pauli_innerp = diff_pauli_hamil_inner_product_real(circuit, i_param, qset_op_weight, param)
             diff_hamil_innerp = diff_hamil_innerp + pauli_innerp
         C.append(diff_hamil_innerp)
