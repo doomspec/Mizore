@@ -2,7 +2,7 @@ from chemistry.simple_mols import simple_4_qubit_lih
 from mizore.backend_circuit.one_qubit_gates import X
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.value import Variable
-from mizore.meta_circuit.block.gate_group import GateGroup
+from mizore.meta_circuit.block.gates import Gates
 from mizore.meta_circuit.block.rotation import Rotation
 from mizore.operators import QubitOperator
 from mizore.meta_circuit.block.rotation_group import RotationGroup
@@ -44,7 +44,7 @@ def simple_large_pqc_node(param_var=0.001):
     ops += QubitOperator('X0 X1 X2 X3')
     ops2 = QubitOperator('X0') + QubitOperator('X1') + QubitOperator('X2') + QubitOperator('X3')
     obs = hamil
-    bc = MetaCircuit(n_qubit, [GateGroup(X(0)), RotationGroup(ops),
+    bc = MetaCircuit(n_qubit, [Gates(X(0)), RotationGroup(ops),
                                RotationGroup(ops2, fixed_angle_shift=[1.0])])
     n_param = bc.n_param
     node = DeviceCircuitNode(bc, obs)
@@ -63,7 +63,7 @@ def simple_large_pqc_node2(param_var=0.001):
     ops2 = QubitOperator('X0') + QubitOperator('X1') + QubitOperator('X2') + QubitOperator('X3')
     obs = hamil
     obs2 = 2 * QubitOperator('X0')
-    bc = MetaCircuit(n_qubit, [GateGroup(X(0)), RotationGroup(ops),
+    bc = MetaCircuit(n_qubit, [Gates(X(0)), RotationGroup(ops),
                                Rotation((0, 1, 2, 3), (1, 1, 1, 1), 0.2, angle_shift=2.0),
                                RotationGroup(ops2, fixed_angle_shift=[0.5])])
     n_param = bc.n_param

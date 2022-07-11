@@ -1,6 +1,6 @@
-from qulacs import QuantumState
-
+from mizore.backend_circuit.backend_circuit import BackendCircuit
 from mizore.backend_circuit.backend_state import BackendState
+from mizore.backend_circuit.one_qubit_gates import GlobalPhase
 from mizore.comp_graph.comp_graph import CompGraph
 from mizore.comp_graph.value import Value
 from mizore.meta_circuit.block.exact_evolution import ExactEvolution
@@ -16,7 +16,7 @@ from numpy.testing import assert_array_almost_equal
 
 def test_single_qubit():
     n_qubit = 1
-    hamil = QubitOperator("Z0") + QubitOperator("X0") + QubitOperator("Y0")
+    hamil = QubitOperator("Z0") + QubitOperator("X0") + QubitOperator("Y0") + 1.0
 
     blocks = [Rotation((0,), (1,), angle_shift=1.0),
               Rotation((0,), (3,), angle_shift=1.5),
@@ -46,7 +46,9 @@ def test_single_qubit():
         curr_time += step_size
 
         state = init_state.copy()
-        circuit.get_backend_circuit(param.value()).update_quantum_state(state)
+        gate_list = circuit.get_gates(param.value())
+        gate_list.append(GlobalPhase(step_size*hamil.constant))
+        BackendCircuit(circuit.n_qubit, gate_list).update_quantum_state(state)
 
         state_ref = init_state.copy()
         circuit_ref.get_backend_circuit([curr_time]).update_quantum_state(state_ref)

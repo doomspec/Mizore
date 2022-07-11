@@ -34,7 +34,7 @@ def test_single_qubit():
     n_qubit = 1
     step_size = 5e-3
 
-    hamil = QubitOperator("Z0") - QubitOperator("X0") + QubitOperator("Y0")
+    hamil = QubitOperator("Z0") - QubitOperator("X0") + QubitOperator("Y0") + 2.0
 
     blocks = [Rotation((0,), (1,), angle_shift=1.0),
               Rotation((0,), (3,), angle_shift=1.5),

@@ -1,6 +1,6 @@
 from chemistry.simple_mols import simple_4_qubit_lih
 from mizore.comp_graph.value import Variable
-from mizore.meta_circuit.block.gate_group import GateGroup
+from mizore.meta_circuit.block.gates import Gates
 from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.backend_circuit.one_qubit_gates import X
@@ -28,7 +28,7 @@ def simple_pqc_node_one_obs(param_var=0.001, name=None):
     ops += QubitOperator('X0 X1 X2 X3')
     ops2 = QubitOperator('X0') + QubitOperator('X1') + QubitOperator('X2') + QubitOperator('X3')
     obs = hamil
-    bc = MetaCircuit(n_qubit, [GateGroup(X(0)), RotationGroup(ops),
+    bc = MetaCircuit(n_qubit, [Gates(X(0)), RotationGroup(ops),
                                RotationGroup(ops2, fixed_angle_shift=[0.2])])
     n_param = bc.n_param
     node_ = DeviceCircuitNode(bc, obs, name=name)

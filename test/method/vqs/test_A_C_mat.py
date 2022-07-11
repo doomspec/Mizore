@@ -1,5 +1,5 @@
 from chemistry.simple_mols import simple_4_qubit_lih
-from method.vqs.finite_diff_A_C_mat import get_A_by_finite_diff, get_C_by_finite_diff
+from mizore.method.vqs.finite_diff_A_C_mat import get_A_by_finite_diff, get_C_by_finite_diff
 from mizore.comp_graph.comp_graph import CompGraph
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.comp_graph.value import Value
@@ -13,6 +13,7 @@ from numpy.testing import assert_array_almost_equal, assert_allclose
 
 def test_A_real_C_imag():
     hamil = simple_4_qubit_lih()
+    del hamil.terms[tuple()]
 
     blocks = []
 
