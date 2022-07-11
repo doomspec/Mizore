@@ -118,6 +118,14 @@ class QubitOperator(SymbolicOperator):
 
     ##### mizore modification
 
+    def qset_op_weight_omit_const(self):
+        for op_tuple, weight in self.terms.items():
+            if len(op_tuple) == 0:
+                continue
+            qset = [i for i, _ in op_tuple]
+            ops = [_pauli_name_map[op] for _, op in op_tuple]
+            yield qset, ops, weight
+
     def qset_op_weight(self):
         for op_tuple, weight in self.terms.items():
             qset = [i for i, _ in op_tuple]
