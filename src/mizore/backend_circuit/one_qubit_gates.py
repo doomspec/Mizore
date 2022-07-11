@@ -23,6 +23,9 @@ class GlobalPhase(Gate):
     def get_inverse(self):
         return GlobalPhase(-self._angle)
 
+    def __str__(self):
+        return "GlobalPhase at {} angle: {}".format(self.qset, self.angle)
+
 class X(Gate):
 
     def __init__(self, target):
