@@ -3,7 +3,7 @@ from __future__ import annotations
 from copy import copy
 from typing import List, Tuple, Union
 
-from mizore.meta_circuit.block.gate_group import GateGroup
+from mizore.meta_circuit.block.gates import Gates
 from mizore.backend_circuit.gate import Gate
 from mizore.meta_circuit.block.block import Block
 from mizore.backend_circuit.backend_circuit import BackendCircuit, BackendState, BackendOperator
@@ -19,14 +19,13 @@ class MetaCircuit:
             self._blocks = copy(blocks)
             assert gates is None
         elif gates is not None:
-            self._blocks = [GateGroup(*gates)]
+            self._blocks = [Gates(*gates)]
         else:
             self._blocks = []
         self._n_param = -1
         self.param_delimiter = None
         self.post_processors = []
         self.has_random = False
-        self.default_params = None
 
     def replica(self) -> MetaCircuit:
         res = copy(self)
@@ -41,7 +40,7 @@ class MetaCircuit:
         self.param_delimiter = param_delimiter
 
     def add_gates(self, gates: List[Gate]):
-        self.add_blocks([GateGroup(*gates)])
+        self.add_blocks([Gates(*gates)])
 
     @property
     def blocks(self):
@@ -89,7 +88,7 @@ class MetaCircuit:
         if isinstance(params, List):
             params = np_array(params, copy=False)
         if params is None:
-            params = np_array([0.0] * self.n_param) if self.default_params is None else self.default_params
+            params = np_array([0.0] * self.n_param)
         blocks = self._blocks
         delimiter = self.param_delimiter
         origin_gates_list = []

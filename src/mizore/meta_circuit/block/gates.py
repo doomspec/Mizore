@@ -1,7 +1,7 @@
 from .block import Block
 
 
-class GateGroup(Block):
+class Gates(Block):
     def __init__(self, *gates):
         Block.__init__(self, 0)
         self.gates = list(gates)
