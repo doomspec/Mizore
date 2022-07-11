@@ -1,10 +1,15 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .value import Value
+    from .comp_node import CompNode
+
 from collections.abc import Iterable
 from typing import Set, Dict, Union
 
 from mizore.utils.typed_log import TypedLog
 
-from .comp_node import CompNode
-from .value import Value
+
 
 
 class CompGraph:
@@ -109,58 +114,47 @@ class CompGraph:
     def build_node_graph(self):
         for node in self.nodes:
             direct_child = set()
-            CompGraph.get_direct_node_child(node, direct_child)
+            for val in node.inputs.values():
+                CompGraph.get_direct_node_child(val, direct_child)
             self.node_in[node] = direct_child
             for child in direct_child:
                 self.node_out[child].add(node)
 
     @classmethod
-    def get_direct_node_child(cls, root, child_set: Set):
-        if isinstance(root, Value):
-            if root.home_node is not None and root.home_node.in_graph:
-                child_set.add(root.home_node)
-            for val in root.args:
-                CompGraph.get_direct_node_child(val, child_set)
-        elif isinstance(root, CompNode):
-            for val in root.inputs.values():
-                CompGraph.get_direct_node_child(val, child_set)
-        else:
-            raise TypeError()
+    def get_direct_node_child(cls, value: Value, child_set: Set):
+        if value.home_node is not None and value.home_node.in_graph:
+            child_set.add(value.home_node)
+        for val in value.args:
+            CompGraph.get_direct_node_child(val, child_set)
 
-    def add_child_elems(self, root: Union[Value, CompNode]) -> None:
+    def add_child_elems(self, root: Value) -> None:
         """
         Add all elements (CompNode and Value) in self.elems
         Add all CompNode in self.nodes
         :param root: the root element where the search is from
         """
-        if isinstance(root, Value):
-            self.values.add(root)
-            if root.home_node is not None:
-                if root.home_node not in self.values:
-                    if root.home_node.in_graph:
-                        self.add_child_elems(root.home_node)
-                    else:
-                        self.out_graph_nodes.add(root.home_node)
-            for val in root.args:
-                if val not in self.values:
-                    self.add_child_elems(val)
-            if root.is_indep_random and root.var_constructed is not None:
-                self.add_child_elems(root.var_constructed)
-        elif isinstance(root, CompNode):  # If root is a CompNode
-            root: CompNode
-            assert root.in_graph  # The initial elem must be in_graph
-            if root not in self.nodes:
-                self.nodes_set.add(root)
-                self.nodes.append(root)
-            for val in root.inputs.values():
-                if isinstance(val, Value):
-                    if val not in self.values:
-                        self.values.add(val)
-                        self.add_child_elems(val)
+        self.values.add(root)
+        if root.home_node is not None:
+            if root.home_node not in self.values:
+                if root.home_node.in_graph:
+                    self.add_child_elems_for_node(root.home_node)
                 else:
-                    raise TypeError()
-        else:
-            raise TypeError()
+                    self.out_graph_nodes.add(root.home_node)
+        for val in root.args:
+            if val not in self.values:
+                self.add_child_elems(val)
+        if root.is_indep_random and root.var_constructed is not None:
+            self.add_child_elems(root.var_constructed)
+
+    def add_child_elems_for_node(self, root: CompNode):
+        assert root.in_graph  # The initial elem must be in_graph
+        if root not in self.nodes:
+            self.nodes_set.add(root)
+            self.nodes.append(root)
+        for val in root.inputs.values():
+            if val not in self.values:
+                self.values.add(val)
+                self.add_child_elems(val)
 
     def iter_nodes_by_type(self, typename) -> Iterable[CompNode]:
         def iterable():

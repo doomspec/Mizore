@@ -1,17 +1,21 @@
 from __future__ import annotations
+from typing import TYPE_CHECKING
 
-import math
+if TYPE_CHECKING:
+    from mizore.comp_graph.comp_node import CompNode
+
 import numbers
 import time
 from copy import copy
 from typing import List, Callable, Set, Dict, Tuple, Union
 
-from jax import jacfwd, jit
+from jax import jacfwd
 import jax.numpy as jnp
 from numpy.random import default_rng
 
 from mizore.utils.type_check import is_number
 from mizore import jax_array, to_jax_array
+from mizore.comp_graph.comp_graph import CompGraph
 
 
 class Value:
@@ -19,7 +23,7 @@ class Value:
         self.name = name
         # The node that the parameter is based.
         # Can be None when the parameter does not directly depend on a node
-        self.home_node = home_node
+        self.home_node: CompNode = home_node
         # The list of the parameters that this parameter depends on
         # Should be None when home_node is not None
         self.args: List[Value] = args
@@ -83,22 +87,21 @@ class Value:
     def mean_second_order(self):
         return self.get_shifted_mean()
 
-    def get_approx_eval(self):
-        approx_eval, var_list, var_dict = Value._get_approx_eval(self)
+    def get_approx_eval_on_var(self):
+        approx_eval, var_list, var_dict = Value._get_approx_eval_on_var(self)
         init_val = [var.value() for var in var_list]
         return lambda args: approx_eval(*args), var_list, init_val
 
-
     def generate_linear_approx_on_var(self):
         self.linear_approx = False
-        eval_on_var, var_list, var_dict = Value._get_approx_eval(self)
+        eval_on_var, var_list, init_val = self.get_approx_eval_on_var()
         self.linear_approx = True
         self.approx_args = var_list
-        init_val = [var.value() for var in var_list]
         init_func = eval_on_var(init_val)
 
         if len(var_list) == 0:
             self.approx_fun = lambda: init_func
+            self.approx_args = []
             return
 
         grads = jacfwd(eval_on_var)(init_val)
@@ -113,30 +116,29 @@ class Value:
 
     def generate_const_approx_on_var(self):
         self.const_approx = False
-        eval_on_var, var_list, init_val = self.get_approx_eval()
+        eval_on_var, var_list, init_val = self.get_approx_eval_on_var()
         self.const_approx = True
         init_func = eval_on_var(init_val)
+
         if len(var_list) == 0:
-            self.approx_args = []
             self.approx_fun = lambda: init_func
+            self.approx_args = []
             return
 
         grads = jacfwd(eval_on_var)(init_val)
         std_deviation_list = [jnp.sqrt(var.var.value()) for var in var_list]
 
-        var = init_func*0.0
+        var = init_func * 0.0
         for i in range(len(grads)):
-            #var += jnp.tensordot(grads[i], std_deviation_list[i], jnp.ndim(init_val[i]))**2
-            var += jnp.tensordot(grads[i]**2, std_deviation_list[i]**2, jnp.ndim(init_val[i]))
+            var += jnp.tensordot(grads[i] ** 2, std_deviation_list[i] ** 2, jnp.ndim(init_val[i]))
 
-        const_variable = Variable(eval_on_var(init_val),var)
+        const_variable = Variable(eval_on_var(init_val), var)
 
-        print("hello")
         self.approx_fun = lambda x: x
         self.approx_args = [const_variable]
 
     @classmethod
-    def _get_approx_eval(cls, param: Value) -> Tuple[Callable, List[Value], Dict[Value, int]]:
+    def _get_approx_eval_on_var(cls, param: Value) -> Tuple[Callable, List[Value], Dict[Value, int]]:
         if param.is_indep_random:
             return lambda x: x, [param], {param: 0}
 
@@ -162,25 +164,24 @@ class Value:
         if n_child == 0:
             return lambda: param.operator(), [], dict()
         elif n_child == 1:
-            sub_eval, sub_vars, sub_vars_dict = Value._get_approx_eval(param.args[0])
+            sub_eval, sub_vars, sub_vars_dict = Value._get_approx_eval_on_var(param.args[0])
             return lambda *args: param.operator(sub_eval(*args)), sub_vars, sub_vars_dict
         elif n_child > 1:
             eval_list = []
             vars_list = []
             var_dict_list = []
             for i in range(n_child):
-                _eval, _vars, var_dict = Value._get_approx_eval(param.args[i])
+                _eval, _vars, var_dict = Value._get_approx_eval_on_var(param.args[i])
                 eval_list.append(_eval)
                 vars_list.append(_vars)
                 var_dict_list.append(var_dict)
             return Value.get_multi_arg_eval_fun(param.operator, eval_list, vars_list, var_dict_list)
 
     def _get_var(self, order=1) -> Value:
-        eval_func, var_list, init_list = self.get_approx_eval()
-        first_grad_contributions = []
-        first_grad_func_list = []
+        eval_func, var_list, init_list = self.get_approx_eval_on_var()
+
         if len(var_list) == 0:
-            return Value(0.0) # TODO: does shape matter?
+            return Value(0.0)  # TODO: does shape matter?
 
         first_grad = jacfwd(eval_func)
 
@@ -196,17 +197,31 @@ class Value:
         if order == 1:
             return first_grad_contribution
 
-        assert False
+        assert False  # I cannot ensure the correctness of the following
 
-        second_grad_contributions = []
+        second_grad = jacfwd(first_grad)
+
+        def variance_from_second_grad(variable, variable_var):
+            second_grads = second_grad(variable)
+            contracted0 = [sum([multiply_and_sum(second_grads[i][j] ** 2, variable_var[j])
+                                for j in range(len(second_grads[i]))])
+                           for i in range(len(second_grads))]
+            contracted1 = [multiply_and_sum(contracted0[i], variable_var[i]) for i in range(len(second_grads))]
+            summed = -0.25 * sum(contracted1)
+            return summed
+
+        second_grad_contribution = Value.binary_operator(variables, variable_vars, variance_from_second_grad)
+
+        """
         for i in range(len(var_list)):
             second_grad = jacfwd(first_grad_func_list[i], argnums=i)
             second_grad_contributions.append(
                 Value.binary_operator(Value.binary_operator(-0.25 * (Value(args=var_list, operator=second_grad) ** 2),
                                                             var_list[i].var_constructed, multiply_and_sum),
                                       var_list[i].var_constructed, multiply_and_sum))
+        """
+        # second_grad_contribution = Value(args=[Value.array(second_grad_contributions)], operator=sum_first_axis)
 
-        second_grad_contribution = Value(args=[Value.array(second_grad_contributions)], operator=sum_first_axis)
         if order == 2:
             return first_grad_contribution + second_grad_contribution
         else:
@@ -245,12 +260,6 @@ class Value:
     def show_value(self):
         print(f"{self.name if self.name is not None else 'Untitled'}: {self.value()}")
 
-    def eval(self):
-        """
-        Alias of self.value()
-        """
-        return self.value()
-
     def del_cache(self):
         self.cache_val = None
         self.var_dependency_cache = None
@@ -261,10 +270,9 @@ class Value:
         self.approx_args = []
         self.approx_fun = None
 
-
     def del_cache_recursive(self):
         Value._del_cache_recursive(self, set())
-    
+
     @classmethod
     def _del_cache_recursive(cls, param: Value, touched_param: Set[Value]):
         param.del_cache()
@@ -273,11 +281,7 @@ class Value:
                 touched_param.add(arg_param)
                 Value._del_cache_recursive(arg_param, touched_param)
 
-
     def value(self):
-        return self.get_value()
-
-    def eval_and_cache(self):
         return self.get_value()
 
     def get_value(self):
@@ -353,7 +357,7 @@ class Value:
         elif n_child == -1:  # == 2
             eval0, vars0, var_dict0 = Value._get_eval_fun(param.args[0], terminal_checker)
             eval1, vars1, var_dict1 = Value._get_eval_fun(param.args[1], terminal_checker)
-            # TODO this part is not thoroughly tested! I guess it is correct from simple test cases.
+            # I don't know whether a special branch for n_child = 2 can increase the efficiency
             # The result of both branches should be the same
             if len(vars0) < len(vars1) + 5:  # If vars0 is smaller than vars1  # 5 is an ad hoc value
                 return Value.get_two_arg_eval_fun(param.operator, eval0, vars0, var_dict0, eval1, vars1,
@@ -387,7 +391,7 @@ class Value:
         return new_operator, new_var_list, new_var_dict
 
     @classmethod
-    def get_multi_arg_eval_fun(cls, op, eval_list: List, vars_list: List, var_dict_list: List[Dict]):
+    def get_multi_arg_eval_fun(cls, op, eval_list: List, vars_list: List[List[Value]], var_dict_list: List[Dict]):
         var_added = set(vars_list[0])
         value_map = list(range(len(vars_list[0])))
         new_var_dict = {key: value for key, value in var_dict_list[0].items()}
@@ -409,8 +413,8 @@ class Value:
         n_eval = len(eval_list)
 
         def new_operator(*args):
-            expanded_args = [args[i] for i in value_map]
-            eval_res = [eval_list[i](*expanded_args[delimiters[i]:delimiters[i + 1]]) for i in range(n_eval)]
+            expanded_args = [args[i_] for i_ in value_map]
+            eval_res = [eval_list[i_](*expanded_args[delimiters[i_]:delimiters[i_ + 1]]) for i_ in range(n_eval)]
             return op(*eval_res)
 
         return new_operator, new_var_list, new_var_dict
@@ -565,17 +569,24 @@ class Value:
     def get_by_index(self, index):
         return Value.unary_operator(self, lambda arg: arg[index])
 
-    sample_seed_shift=0
+    sample_seed_shift = 0
 
     def sample_gaussian(self, seed=None):
         if seed is None:
-            rng = default_rng(int(time.time()*10000))
+            rng = default_rng(int(time.time() * 10000))
         else:
             rng = default_rng(seed * 5 + Value.sample_seed_shift * 11)
             Value.sample_seed_shift += 1
         sqrt_var_mat = jnp.sqrt(self.var.value())
         mean_mat = self.value()
         return rng.normal(mean_mat, sqrt_var_mat)
+
+    def build_graph(self, other_val: Union[List[Value], None] = None):
+        if other_val is None:
+            return CompGraph([self])
+        else:
+            return CompGraph([self] + other_val)
+
 
 def sum_first_axis(arr):
     return jnp.sum(arr, axis=0)
