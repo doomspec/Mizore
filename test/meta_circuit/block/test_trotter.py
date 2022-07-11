@@ -15,7 +15,7 @@ def get_innerp_list(init_circuit: MetaCircuit, hamil: QubitOperator, n_steps, de
 
     innerp_list = []
     for n_step in n_steps:
-        trotter_block = Trotter(hamil, delta_t, n_step)
+        trotter_block = Trotter(hamil, delta_t, delta_t*n_step)
         circuit = MetaCircuit(n_qubit, blocks=init_circuit.block_list + [trotter_block])
         state = circuit.get_backend_state()
         state_expected = ref_circuit.get_backend_state([n_step * delta_t])
