@@ -15,20 +15,30 @@ import jax.numpy as jnp
 
 
 class CircuitRunner(Transpiler):
-    def __init__(self, n_proc=4, shift_by_var=False):
+    def __init__(self, state_processor_gens=None, n_proc=4, shift_by_var=False):
         super().__init__()
         self.n_proc = n_proc
         self.eps = 1e-4
         self.shift_by_var = shift_by_var  # this option is buggy
+        self.state_processor_gens = [] if state_processor_gens is None else state_processor_gens
 
     def transpile(self, target_nodes: GraphIterator):
         output_dict = {}
         node_list: List[QCircuitNode] = list(target_nodes.by_type(QCircuitNode))
         n_node = len(node_list)
         args_list = []
+        state_processors_list = []
+        params_means = []
         for node in node_list:
-            args_list.append((node.circuit, node.obs_list, node.params.value(), node.config))
-        params_mean = [arg[2] for arg in args_list]
+            processors = []
+            for generator in self.state_processor_gens:
+                processor = generator.get_state_processor(node)
+                if processor is not None:
+                    processors.append(processor)
+            state_processors_list.append(processors)
+            node_params = node.params.value()
+            params_means.append(node_params)
+            args_list.append((node.circuit, node.obs_list, node_params, node.config, processors))
         """
         Important thing when use Pool.
         Jax device array will be casted into numpy array when being passed through processes
@@ -36,15 +46,23 @@ class CircuitRunner(Transpiler):
         Therefore, we must cast it back to jax array by hand
         """
         with Pool(self.n_proc) as pool:
-            exp_vals_and_times = pool.starmap(eval_node_and_time, args_list)
+            exp_vals_times_process_res = pool.starmap(eval_node, args_list)
             # Here we cast the array back to Jax array from numpy array
-            exp_vals = [to_jax_array(item[0]) for item in exp_vals_and_times]
+            exp_vals = [to_jax_array(item[0]) for item in exp_vals_times_process_res]
             for i in range(n_node):
-                output_dict[node_list[i]] = {"classical_time": exp_vals_and_times[i][1]}
+                output_dict[node_list[i]] = {"classical_time": exp_vals_times_process_res[i][1]}
+            processor_res_list = [item[2] for item in exp_vals_times_process_res]
 
             if not self.shift_by_var:
                 for i in range(len(node_list)):
                     set_expv(node_list[i], exp_vals[i])
+
+            for i in range(len(node_list)):
+                state_processors = state_processors_list[i]
+                node = node_list[i]
+                processor_res = processor_res_list[i]
+                for processor in state_processors:
+                    processor.post_process(node, processor_res[processor.key])
 
             if self.shift_by_var:
                 meta_node_list = []
@@ -54,7 +72,7 @@ class CircuitRunner(Transpiler):
                     node_i = node_list[i]
                     if isinstance(node_i, DeviceCircuitNode) and node_i.expv_shift_from_var:
                         meta_node_list.append(node_i)
-                        meta_params_mean.append(params_mean[i])
+                        meta_params_mean.append(params_means[i])
                         meta_exp_vals.append(exp_vals[i])
                     else:
                         # If it is a normal QCircuitNode, set its expectation value
@@ -106,10 +124,10 @@ def eval_shifted_exps(circuit, obs_list, param, shift, config):
     return shifted_exp_vals
 
 
-def eval_node_and_time(circuit, obs_list, param_mean, config):
+def eval_node(circuit, obs_list, param_mean, config, state_processors):
     backend_ops = [BackendOperator(ob) for ob in obs_list]
     config = config if circuit.has_random else None
     time_start = time()
-    exp_vals = eval_on_param_mean(circuit, param_mean, backend_ops, config)
+    exp_vals, processor_res = eval_on_param_mean(circuit, param_mean, backend_ops, config, state_processors)
     time_end = time()
-    return exp_vals, (time_end - time_start) * 1e6
+    return exp_vals, (time_end - time_start) * 1e6, processor_res
