@@ -9,8 +9,10 @@ import time
 from copy import copy
 from typing import List, Callable, Set, Dict, Tuple, Union
 
-from jax import jacfwd
+from jax import jacfwd, jit
 import jax.numpy as jnp
+import numpy as np
+from jax.numpy import complex128
 from numpy.random import default_rng
 
 from mizore.utils.type_check import is_number
@@ -259,6 +261,15 @@ class Value:
 
     def show_value(self):
         print(f"{self.name if self.name is not None else 'Untitled'}: {self.value()}")
+
+    def show_variance(self):
+        print(f"{self.name if self.name is not None else 'Untitled'}-Var: {self.var.value()}")
+
+    def show_std_devi(self):
+        """
+        Show the standard deviation of the value
+        """
+        print(f"{self.name if self.name is not None else 'Untitled'}-StdDevi: {jnp.sqrt(self.var.value())}")
 
     def del_cache(self):
         self.cache_val = None
@@ -566,20 +577,44 @@ class Value:
         array_param = Value(args=params, operator=(lambda *arg: jax_array(arg)))
         return array_param
 
+    @classmethod
+    def matrix(cls, param_mat: List[List[Value]]):
+        value_mat = [None]*len(param_mat)
+        for i in range(len(param_mat)):
+            value_mat[i] = Value.array(param_mat[i])
+        return Value.array(value_mat)
+
     def get_by_index(self, index):
         return Value.unary_operator(self, lambda arg: arg[index])
 
     sample_seed_shift = 0
 
+    """
     def sample_gaussian(self, seed=None):
-        if seed is None:
-            rng = default_rng(int(time.time() * 10000))
-        else:
-            rng = default_rng(seed * 5 + Value.sample_seed_shift * 11)
-            Value.sample_seed_shift += 1
-        sqrt_var_mat = jnp.sqrt(self.var.value())
+        rng = default_rng(time.time() * 5 + Value.sample_seed_shift * 11)
+        Value.sample_seed_shift += 1
+        sqrt_var_mat = np.sqrt(self.var.value())
         mean_mat = self.value()
-        return rng.normal(mean_mat, sqrt_var_mat)
+        if mean_mat.dtype == complex128:
+            return rng.normal(mean_mat.real, sqrt_var_mat.real) + rng.normal(mean_mat.imag, sqrt_var_mat.imag)*1j
+        else:
+            return rng.normal(mean_mat, sqrt_var_mat)
+    """
+
+    def gaussian_sample_iter(self, n_sample, use_jit=False):
+        eval_func, var_list, init_val = self.get_eval_on_var()
+        if use_jit:
+            eval_func = jit(eval_func)
+        std_devi = [jnp.sqrt(var.var.value()) for var in var_list]
+        n_var = len(std_devi)
+        for i in range(n_sample):
+            sample_variable_val = []
+            for var_i in range(n_var):
+                rng = default_rng(int(time.time() * 53) + Value.sample_seed_shift * 11 + var_i * 7)
+                Value.sample_seed_shift += 1
+                sampled_gaussian = rng.normal(init_val[var_i], std_devi[var_i])
+                sample_variable_val.append(sampled_gaussian)
+            yield eval_func(sample_variable_val)
 
     def build_graph(self, other_val: Union[List[Value], None] = None):
         if other_val is None:
