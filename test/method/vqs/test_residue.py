@@ -25,7 +25,7 @@ def test_residue():
     def residue(A, b):
         return A_mat.value()@lstsq(A, b)[0]-b_vec.value()
 
-    means, vars = operation_test_binary(A_mat, b_vec, residue, n_repeat=100000, seed=int(time.time()))
+    means, vars = operation_test_binary(A_mat, b_vec, residue, n_repeat=100000, use_jit=True)
 
 
     print(vars[0]/b_vec.value())
