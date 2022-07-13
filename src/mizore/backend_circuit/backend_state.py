@@ -7,6 +7,8 @@ from qulacs.state import inner_product
 
 from mizore.backend_circuit.backend_op import BackendOperator
 
+from math import log2
+
 
 class BackendState:
     def __init__(self, n_qubit, dm=False):
@@ -42,3 +44,25 @@ class BackendState:
 
     def get_vector(self):
         return self.qulacs_state.get_vector()
+
+    def get_zero_probability(self, qset):
+        query_list = [2] * self.n_qubit
+        for index in qset:
+            query_list[index] = 0
+        return self.qulacs_state.get_marginal_probability(query_list)
+
+    def sample_1_qset(self, count, seed):
+        sampled = self.qulacs_state.sampling(count, seed)
+        sampled_qset = [number_to_qset(number) for number in sampled]
+        return sampled_qset
+
+
+def number_to_qset(number):
+    if number == 0:
+        return ()
+    highest = int(log2(number)) + 1
+    qset = []
+    for i in range(0, highest):
+        if int((number % (1 << (i + 1))) / (1 << i)) == 1:
+            qset.append(i)
+    return qset

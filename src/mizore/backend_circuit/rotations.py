@@ -9,17 +9,19 @@ from mizore.backend_circuit.one_qubit_gates import Hadamard
 from mizore.backend_circuit.two_qubit_gates import CNOT
 from mizore.operators.qubit_operator import QubitOperator
 
-_qulacs_gate_map = {
-    1: RX,
-    2: RY,
-    3: RZ
-}
+_qulacs_gate_map = [
+    None,
+    RX,
+    RY,
+    RZ
+]
 
-pauli_index_char_map = {
-    1: 'X',
-    2: 'Y',
-    3: 'Z'
-}
+pauli_index_char_map = [
+    'I',
+    'X',
+    'Y',
+    'Z'
+]
 
 
 class SingleRotation(Gate):

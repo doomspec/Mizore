@@ -151,6 +151,10 @@ class QubitOperator(SymbolicOperator):
         op.terms[op_tuple] = 1.0
         return op
 
+    @classmethod
+    def from_qset_op_weight(cls, qset, pauli_op, weight):
+        return weight*QubitOperator.from_qset_op(qset, pauli_op)
+
     def replica(self):
         return deepcopy(self)
 
