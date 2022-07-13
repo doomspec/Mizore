@@ -11,8 +11,6 @@ from typing import List, Callable, Set, Dict, Tuple, Union
 
 from jax import jacfwd, jit
 import jax.numpy as jnp
-import numpy as np
-from jax.numpy import complex128
 from numpy.random import default_rng
 
 from mizore.utils.type_check import is_number
