@@ -13,10 +13,10 @@ from ...operators import QubitOperator
 class DeviceCircuitNode(QCircuitNode):
 
     def __init__(self, circuit: MetaCircuit, obs: Union[List[QubitOperator], QubitOperator], name=None, config=None,
-                 expv_shift_from_var=True, param: Union[Value, None] = None, init_shot_num=10000):
+                 expv_shift_from_var=True, param: Union[Value, None] = None):
         super().__init__(circuit, obs, name=name, config=config)
 
-        self.add_input_value("ShotNum", Parameter(to_jax_array(init_shot_num*len(self.obs_list))))
+        self.add_input_value("ShotNumTotal", only_bind=True)
         self.add_input_value("Params")
 
         if param is None:
@@ -26,9 +26,18 @@ class DeviceCircuitNode(QCircuitNode):
 
         self.expv_shift_from_var = expv_shift_from_var
 
+        self.shot_num_overwritten = None
+
+    @property
+    def shot_num_total(self):
+        return self.inputs["ShotNumTotal"]
+
     @property
     def shot_num(self):
-        return self.inputs["ShotNum"]
+        if self.shot_num_overwritten is None:
+            return self.inputs["ShotNumTotal"]
+        else:
+            return self.shot_num_overwritten(self)
 
     def __call__(self, *args, **kwargs) -> Value:
         return self.expv

@@ -13,4 +13,5 @@ class InfiniteMeasurement(Transpiler):
     def transpile(self, graph_iterator: GraphIterator):
         node: DeviceCircuitNode
         for node in graph_iterator.by_type(DeviceCircuitNode):
-            node.expv.set_to_not_random()
+            for expv in node.iter_expv():
+                expv.set_to_not_random()

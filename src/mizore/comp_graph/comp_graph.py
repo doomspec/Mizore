@@ -101,7 +101,7 @@ class CompGraph:
     @classmethod
     def get_no_in_nodes(cls, node_in: Dict[CompNode, Set]) -> Set:
         """
-        Get the nodes that have no in-node
+        Get the nodes that have nO in-node
         :param node_in:
         :return:
         """

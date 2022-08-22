@@ -117,8 +117,6 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         """Whether factors acting on different indices commute."""
         pass
 
-    __hash__ = None
-
     def __init__(self, term=None, coefficient=1.):
         if not isinstance(coefficient, COEFFICIENT_TYPES):
             raise ValueError(
@@ -154,6 +152,16 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
 
         # Add the term to the dictionary
         self.terms[term] = coefficient
+
+        self.hash_cache = None
+
+    def __hash__(self):
+        #if self.hash_cache is not None:
+        #    return self.hash_cache
+        terms = tuple((key, value) for key, value in self.terms)
+        res = terms.__hash__()
+        self.hash_cache = res
+        return res
 
     def _long_string_init(self, long_string, coefficient):
         r"""
@@ -361,6 +369,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
             product (SymbolicOperator): Mutated self.
         """
         # Handle scalars.
+        self.hash_cache = None
         if isinstance(multiplier, COEFFICIENT_TYPES):
             for term in self.terms:
                 self.terms[term] *= multiplier
@@ -426,6 +435,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         Raises:
             TypeError: Cannot add invalid type.
         """
+        self.hash_cache = None
         if isinstance(addend, type(self)):
             for term in addend.terms:
                 self.terms[term] = (self.terms.get(term, 0.0) +
@@ -474,6 +484,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         Raises:
             TypeError: Cannot subtract invalid type.
         """
+        self.hash_cache = None
         if isinstance(subtrahend, type(self)):
             for term in subtrahend.terms:
                 self.terms[term] = (self.terms.get(term, 0.0) -

@@ -6,11 +6,8 @@ from mizore import jax_array, to_jax_array, to_np_array
 # import numpy as np
 import jax.numpy as jnp
 
-from mizore.transpiler.circuit_runner.state_processor import StateProcessor
 
-
-def eval_on_param_mean(circuit: MetaCircuit, params, backend_ops: List[BackendOperator], config=None,
-                       state_processors: List[StateProcessor] = None):
+def eval_on_param_mean(circuit: MetaCircuit, params, backend_ops: List[BackendOperator], config=None):
     backend_circuit = circuit.get_backend_circuit(params)
     # Run and update the state
     res: List[complex]
@@ -18,15 +15,12 @@ def eval_on_param_mean(circuit: MetaCircuit, params, backend_ops: List[BackendOp
     if config is None:
         backend_state = backend_circuit.get_quantum_state(dm=False)
         res = backend_state.get_many_expv(backend_ops)
-        use_post_processors(backend_state, state_processors, state_processor_res)
     else:  # When the task is probabilistic
         config: Dict
         if config.get("use_dm", False):  # If use_dm = True
             backend_state = backend_circuit.get_quantum_state(dm=True)
             res = backend_state.get_many_expv(backend_ops)
-            use_post_processors(backend_state, state_processors, state_processor_res)
         else:
-            assert state_processors is None
             n_exp = config["n_exp"]
             if n_exp == 1:
                 print("Warning: number of experiments is only 1")
@@ -42,14 +36,7 @@ def eval_on_param_mean(circuit: MetaCircuit, params, backend_ops: List[BackendOp
         if abs(res[i].imag) > 1e-6:
             raise NotImplementedError("Complex expectation value is not yet supported")
         res[i] = res[i].real
-    return jax_array(res), state_processor_res
-
-
-def use_post_processors(backend_state, state_processors, state_processor_res):
-    processor: StateProcessor
-    for processor in state_processors:
-        res = processor.process(backend_state)
-        state_processor_res[processor.key] = res
+    return jax_array(res)
 
 
 def get_exp_value_list(ops, state):

@@ -4,7 +4,7 @@ from mizore.transpiler.estimator.simple_resource import SimpleResource
 from mizore.transpiler.circuit_optimize.simple_reducer import SimpleReducer
 from mizore.transpiler.error_mitigation.error_extrapolation import ErrorExtrapolation
 from mizore.transpiler.measurement.infinite import InfiniteMeasurement
-from mizore.transpiler.measurement.naive import NaiveMeasurement
+from mizore.transpiler.measurement.l1sampling import L1Sampling
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
 from mizore.comp_graph.comp_graph import CompGraph
 from mizore.transpiler.noise_model.simple_noise import DepolarizingNoise
@@ -22,26 +22,26 @@ cg = CompGraph([res])
 
 SimpleReducer() | cg
 CircuitRunner() | cg
-NaiveMeasurement() | cg
+L1Sampling() | cg
 true_val = res.value()
 print("Val without err", res.value())
 print("Variance: ", res.var.value())
 cg.del_all_cache()
 
 DepolarizingNoise(0.1) | cg
-NaiveMeasurement() | cg
 CircuitRunner() | cg
+L1Sampling() | cg
 print("Result with noise: ", res.value())
 print("Variance: ", res.var.value())
 cg.del_all_cache()
 
 ErrorExtrapolation([1.1, 1.2]) | cg
-NaiveMeasurement() | cg
+
 for node in cg.all():
     CircuitRunner() | node
+    L1Sampling() | node
 
 print("Result after mitigation: ", res.value())
-eval_func, var_list, init_list = res.get_eval_on_var()
 print("Variance: ", res.var.value())
 
 exit()

@@ -49,8 +49,8 @@ def test_single_qubit():
     for i in range(50):
         energy = DeviceCircuitNode(circuit, hamil, param=param)()
         energy_list.append(energy)
-        evol_grad, A_real, C_real = imag_evol_gradient(circuit, hamil, param)
-        param = param - evol_grad * step_size
+        evol_grad, A_real, C_real, curr_energy = imag_evol_gradient(circuit, hamil, param)
+        param = param + evol_grad * step_size
         curr_time += step_size
     energy = DeviceCircuitNode(circuit, hamil, param=param)()
     energy_list.append(energy)

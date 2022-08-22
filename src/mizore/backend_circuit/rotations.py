@@ -45,7 +45,7 @@ class SingleRotation(Gate):
 
 class PauliRotation(Gate):
     """
-    Implement exp(iPt/2), notice that here is no negative sign
+    Implement exp(iPt/2), notice that here is nO negative sign
     """
 
     def __init__(self, qset: List[int], pauli_ops: List[int], angle: float):

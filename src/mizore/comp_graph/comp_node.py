@@ -52,8 +52,8 @@ class CompNode:
         new_node.tags = self.tags.copy()
         return new_node.tags
 
-    def add_input_value(self, key, val: Union[Value, None, ndarray] = None):
-        new_input = Immutable(val)
+    def add_input_value(self, key, val: Union[Value, None, ndarray] = None, only_bind=False):
+        new_input = Immutable(val, only_bind=only_bind)
         new_input.name = f"{self.name}-{key}"
         self.inputs[key] = new_input
         return new_input

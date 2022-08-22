@@ -155,6 +155,12 @@ class QubitOperator(SymbolicOperator):
     def from_qset_op_weight(cls, qset, pauli_op, weight):
         return weight*QubitOperator.from_qset_op(qset, pauli_op)
 
+    @classmethod
+    def from_terms_dict(cls, terms):
+        op = QubitOperator()
+        op.terms = terms
+        return op
+
     def replica(self):
         return deepcopy(self)
 
@@ -166,6 +172,15 @@ class QubitOperator(SymbolicOperator):
         else:
             const = 0.0
         return new_op, const
+
+    def get_l1_norm_omit_const(self):
+        l1_norm = 0.0
+        for weight in self.terms.values():
+            l1_norm += weight
+        l1_norm -= self.terms.get((), 0.0)
+        return l1_norm
+
+
     #####
 
     def renormalize(self):

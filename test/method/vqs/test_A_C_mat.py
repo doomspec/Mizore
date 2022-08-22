@@ -6,7 +6,7 @@ from mizore.comp_graph.value import Value
 from mizore.meta_circuit.block.fixed_block import FixedBlock
 from mizore.meta_circuit.block.rotation import Rotation
 from mizore.meta_circuit.meta_circuit import MetaCircuit
-from mizore.method.vqs.inner_product_circuits import A_mat_real, C_mat_imag, C_mat_real
+from mizore.method.vqs.inner_product_circuits import A_mat_real, C_mat_imag_rte, C_mat_real_ite
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
 from numpy.testing import assert_array_almost_equal, assert_allclose
 
@@ -37,14 +37,13 @@ def test_A_real_C_imag():
     param = Value([0.5]*circuit.n_param)
 
     A = A_mat_real(circuit, param)
-    C_imag = C_mat_imag(circuit, hamil, param)
-    C_real = C_mat_real(circuit, hamil, param)
+    C_imag = C_mat_imag_rte(circuit, hamil, param)
+    C_real, current_energy = C_mat_real_ite(circuit, hamil, param)
 
     cg = CompGraph([A, C_imag, C_real])
 
     node: DeviceCircuitNode
     for node in cg.by_type(DeviceCircuitNode):
-        node.shot_num.set_value(1e11)
         node.expv_shift_from_var = False
 
     CircuitRunner() | cg

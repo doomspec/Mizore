@@ -9,7 +9,7 @@ import time
 from copy import copy
 from typing import List, Callable, Set, Dict, Tuple, Union
 
-from jax import jacfwd, jit
+from jax import jacfwd, jacrev, jit
 import jax.numpy as jnp
 from numpy.random import default_rng
 
@@ -125,7 +125,7 @@ class Value:
             self.approx_args = []
             return
 
-        grads = jacfwd(eval_on_var)(init_val)
+        grads = jacrev(eval_on_var)(init_val)
         std_deviation_list = [jnp.sqrt(var.var.value()) for var in var_list]
 
         var = init_func * 0.0
@@ -289,6 +289,9 @@ class Value:
             if arg_param not in touched_param:
                 touched_param.add(arg_param)
                 Value._del_cache_recursive(arg_param, touched_param)
+
+    def mean(self):
+        pass
 
     def value(self):
         return self.get_value()
@@ -554,6 +557,15 @@ class Value:
 
     def conjugate(self):
         return Value.unary_operator(self, jnp.conjugate)
+
+    def dot(self, other):
+        return Value.binary_operator(self, other, jnp.dot)
+
+    def vdot(self, other):
+        return Value.binary_operator(self, other, jnp.vdot)
+
+    def sqrt(self):
+        return Value.unary_operator(self, jnp.sqrt)
 
     def copy_with_map_dict(self, new_elem_dict):
         # TODO test this

@@ -12,7 +12,7 @@ from mizore.transpiler.circuit_optimize.simple_reducer import SimpleReducer
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
 from mizore.transpiler.error_mitigation.error_extrapolation import ErrorExtrapolation
 from mizore.transpiler.measurement.infinite import InfiniteMeasurement
-from mizore.transpiler.measurement.naive import NaiveMeasurement
+from mizore.transpiler.measurement.l1sampling import L1Sampling
 from mizore.transpiler.noise_model.simple_noise import DepolarizingNoise
 from mizore.transpiler.param_circuit.gradient import GradientCircuit
 from mizore import np_array
@@ -94,7 +94,7 @@ test_noisy = True
 if test_noisy:
     for layer in cg.layers():
         print(123)
-        NaiveMeasurement() | layer
+        L1Sampling() | layer
         CircuitRunner(n_proc=n_proc) | layer
     means, vars = read_ans(node_expvs)
     assert norm(means - np_array(

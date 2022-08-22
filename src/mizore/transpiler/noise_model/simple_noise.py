@@ -41,7 +41,8 @@ class DepolarizingNoise(Transpiler):
             noisy_circuit.has_random = True
             node.tags.add("noisy")
             node.name = node.name + "-Noisy"
-            node.expv.del_cache()
+            for expv in node.iter_expv():
+                expv.set_to_not_random()
 
 
 

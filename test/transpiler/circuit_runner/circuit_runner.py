@@ -5,7 +5,7 @@ from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators import QubitOperator
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
-from mizore.transpiler.measurement.naive import NaiveMeasurement
+from mizore.transpiler.measurement.l1sampling import L1Sampling
 from mizore import np_array
 
 
@@ -25,7 +25,7 @@ node1 = simple_pqc_node(param_var=0.001)
 expv = node1()
 cg = CompGraph([expv])
 CircuitRunner() | cg
-NaiveMeasurement() | cg
+L1Sampling() | cg
 
 #node1.values.show_value()
 

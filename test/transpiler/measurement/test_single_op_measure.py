@@ -10,7 +10,7 @@ from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators import QubitOperator
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
-from mizore.transpiler.measurement.naive import NaiveMeasurement
+from mizore.transpiler.measurement.l1sampling import L1Sampling
 from mizore import np_array
 from numpy.testing import assert_allclose
 
@@ -50,7 +50,8 @@ def test_single_op():
     node.shot_num.set_value(shot_num)
     expv = node()
     cg = expv.build_graph()
-    CircuitRunner(state_processor_gens=[NaiveMeasurement(state_ignorant=False)]) | cg
+    CircuitRunner() | cg
+    L1Sampling(state_ignorant=False) | cg
     var_actual = expv.var.value()
     mean_actual = expv.value()
     print(mean_actual, var_actual)

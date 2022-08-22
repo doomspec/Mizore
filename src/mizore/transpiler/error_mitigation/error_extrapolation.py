@@ -11,7 +11,7 @@ from mizore.comp_graph.comp_graph import GraphIterator
 from mizore.backend_circuit.noise import NoiseGate
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 
-from mizore.comp_graph.node.qc_node import QCircuitNode
+from mizore.comp_graph.node.qc_node import QCircuitNode, set_node_expv_list
 
 from mizore.transpiler.transpiler import Transpiler
 
@@ -42,7 +42,7 @@ class ErrorExtrapolation(Transpiler):
             if "noisy" not in qcnode.tags:
                 print("Not every backend_circuit is noisy")
                 continue
-            mitigated_value = Value(0.0)
+            mitigated_value = [Value(0.0) for _ in range(len(qcnode.obs_list))]
             coeff__square_sum = sum([abs(coeff)**2 for coeff in coeffs])
             for i_level in range(len(self.amp_list)):
                 noisy_circuit = qcnode.circuit.replica()
@@ -58,13 +58,16 @@ class ErrorExtrapolation(Transpiler):
                     noise_qcnode = QCircuitNode(noisy_circuit, qcnode.obs,
                                             name=qcnode.name + f"-ErrExtrp-{i_level}")
                 noise_qcnode.config = qcnode.config
-                result_expv = noise_qcnode()
+                res_expv_list = noise_qcnode.expv_list()
                 # TODO check this: Is this the optimal way to distribute the shot nums?
                 noise_qcnode.shot_num.bind_to(qcnode.shot_num*(abs(coeffs[i_level])**2/coeff__square_sum))
-                mitigated_value = mitigated_value + (coeffs[i_level] * result_expv)
-            mitigated_value.name = "ErrorExtrapExpv"
-            qcnode.expv.bind_to(mitigated_value)
-            qcnode.expv.set_to_not_random()
+                for i_expv in range(len(mitigated_value)):
+                    mitigated_value[i_expv] = mitigated_value[i_expv] + (coeffs[i_level] * res_expv_list[i_expv])
+            expv_list = qcnode.expv_list()
+            for i_expv in range(len(mitigated_value)):
+                mitigated_value[i_expv].name = f"ErrorExtrapExpv-{i_expv}"
+                expv_list[i_expv].bind_to(mitigated_value[i_expv])
+                expv_list[i_expv].set_to_not_random()
             qcnode.in_graph = False
             node_changed = True
         if node_changed:
