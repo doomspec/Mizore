@@ -16,7 +16,7 @@ def simple_pqc_node_one_obs(param_var=0.001, name=None):
     obs1 = QubitOperator('Z0') + QubitOperator('X0') + QubitOperator('Y0')
     blk = RotationGroup(ops, fixed_angle_shift=[2.0, 1.0])
     bc = MetaCircuit(n_qubit, [blk, blk])
-    node = DeviceCircuitNode(bc, [obs1], name=name)
+    node = DeviceCircuitNode(bc, obs1, name=name)
     node.shot_num.set_value(1000)
     params = Variable([0.0] * 4, [param_var] * 4)
     node.params.bind_to(params)
@@ -30,7 +30,7 @@ def simple_pqc_node(param_var=0.001):
     obs2 = QubitOperator('Z1') + QubitOperator('X1')
     blk = RotationGroup(ops, fixed_angle_shift=np_array([2.0, 1.0]))
     bc = MetaCircuit(n_qubit, [blk, blk])
-    node = DeviceCircuitNode(bc, [obs1, obs2])
+    node = DeviceCircuitNode(bc, obs1)
     params = Variable([0.0] * 4, [param_var] * 4)
     node.params.bind_to(params)
     return node
@@ -67,7 +67,7 @@ def simple_large_pqc_node2(param_var=0.001):
                                Rotation((0, 1, 2, 3), (1, 1, 1, 1), 0.2, angle_shift=2.0),
                                RotationGroup(ops2, fixed_angle_shift=[0.5])])
     n_param = bc.n_param
-    node = DeviceCircuitNode(bc, [obs, obs2])
+    node = DeviceCircuitNode(bc, obs)
     node.shot_num.set_value(1000)
     params = Variable([0.0] * n_param, [param_var] * n_param)
     node.params.bind_to(params)

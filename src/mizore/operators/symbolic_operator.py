@@ -117,6 +117,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         """Whether factors acting on different indices commute."""
         pass
 
+
     def __init__(self, term=None, coefficient=1.):
         if not isinstance(coefficient, COEFFICIENT_TYPES):
             raise ValueError(
@@ -158,7 +159,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
     def __hash__(self):
         #if self.hash_cache is not None:
         #    return self.hash_cache
-        terms = tuple((key, value) for key, value in self.terms)
+        terms = tuple((key, value) for key, value in self.terms.items())
         res = terms.__hash__()
         self.hash_cache = res
         return res

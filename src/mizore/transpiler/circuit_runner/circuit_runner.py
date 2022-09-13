@@ -3,7 +3,7 @@ from typing import List, Dict
 from mizore.comp_graph.comp_graph import GraphIterator
 from mizore.comp_graph.value import Value
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
-from mizore.comp_graph.node.qc_node import QCircuitNode, set_node_expv_list
+from mizore.comp_graph.node.qc_node import QCircuitNode
 from mizore.backend_circuit.backend_circuit import BackendOperator
 from mizore.transpiler.circuit_runner._circuit_runner_impl import eval_on_param_mean, \
     eval_param_shifted_exp_val
@@ -33,7 +33,7 @@ class CircuitRunner(Transpiler):
             aux_obs_indices_list.append(aux_obs_indices)
             node_params = node.params.value()
             params_means.append(node_params)
-            args_list.append((node.circuit, node.obs_list+aux_obs_list, node_params, node.config))
+            args_list.append((node.circuit, [node.obs]+aux_obs_list, node_params, node.config))
 
         """
         Important thing when use Pool.
@@ -121,11 +121,9 @@ def assign_res_to_obs_dict(res_list, key_index: Dict, obs_dict):
 
 
 def set_expv(node: QCircuitNode, expv_res, aux_obs_indices):
-    main_len = len(node.obs_list)
-    expv_main = expv_res[:main_len]
-    set_node_expv_list(node, expv_main)
-    if main_len < len(expv_res):
-        assign_res_to_obs_dict(expv_res[main_len:], aux_obs_indices, node.aux_obs_dict)
+    node.expv.set_value(expv_res[0])
+    if len(expv_res)>1:
+        assign_res_to_obs_dict(expv_res[1:], aux_obs_indices, node.aux_obs_dict)
 
 
 def eval_shifted_exps(circuit, obs_list, param, shift, config):

@@ -12,7 +12,7 @@ from mizore.transpiler.circuit_optimize.simple_reducer import SimpleReducer
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
 from mizore.transpiler.error_mitigation.error_extrapolation import ErrorExtrapolation
 from mizore.transpiler.measurement.infinite import InfiniteMeasurement
-from mizore.transpiler.measurement.l1sampling import L1Sampling
+from mizore.transpiler.measurement.l1 import L1Sampling
 from mizore.transpiler.noise_model.simple_noise import DepolarizingNoise
 from mizore.transpiler.param_circuit.gradient import GradientCircuit
 from mizore import np_array

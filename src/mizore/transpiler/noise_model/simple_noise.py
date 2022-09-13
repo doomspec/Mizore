@@ -3,17 +3,9 @@ from typing import List
 from mizore.meta_circuit.block import Block
 from mizore.meta_circuit.post_processor import SimpleProcessor
 from mizore.comp_graph.comp_graph import GraphIterator
-
 from mizore.backend_circuit.noise import Depolarizing
 from mizore.meta_circuit.meta_circuit import MetaCircuit
-
-from mizore.backend_circuit.quantum_circuit import QuantumCircuit
-
-from mizore.backend_circuit.gate import Gate
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
-
-from mizore.comp_graph.node.qc_node import QCircuitNode
-
 from mizore.transpiler.transpiler import Transpiler
 
 
@@ -41,8 +33,7 @@ class DepolarizingNoise(Transpiler):
             noisy_circuit.has_random = True
             node.tags.add("noisy")
             node.name = node.name + "-Noisy"
-            for expv in node.iter_expv():
-                expv.set_to_not_random()
+            node.expv.set_to_not_random()
 
 
 

@@ -1,4 +1,4 @@
-from typing import Union, Tuple, Dict
+from typing import Union, Tuple, Dict, Optional
 
 from mizore.comp_graph.node.qc_node import QCircuitNode
 from mizore.comp_graph.value import Value
@@ -8,12 +8,12 @@ from mizore.operators import QubitOperator
 from jax.numpy.linalg import lstsq
 import jax.numpy as jnp
 
-def real_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Union[Value, None] = None,
+def real_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Optional[Value] = None,
                        rcond=None, calc_Delta=False) -> Tuple[Value, Dict]:
     """
     Get the gradient of the params in the circuit for the closest move to the evolution e^{iHt}
     Notice that, the constant term in H will be omitted!
-    :return: x, A_real, C_imag
+    :return: x, res_dict
     """
     if param is None:
         param = Value([0.0] * circuit.n_param)

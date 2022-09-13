@@ -24,7 +24,7 @@ def test_compare_to_simple_rotation():
         state_vec = state1.get_vector()
         circuit0 = MetaCircuit(n_qubit,
                                blocks=[Gates(PauliGate([1], [1])),
-                                       Rotation(qset, pauli, angle_shift=time * 2)])
+                                       Rotation(qset, pauli, angle_shift=-time * 2)])
         state0 = init_state.copy()
         circuit0.get_backend_circuit().update_quantum_state(state0)
         state_vec_expect = state0.get_vector()

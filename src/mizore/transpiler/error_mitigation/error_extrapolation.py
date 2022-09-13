@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import List
 
 from mizore.comp_graph.value import Value
-from mizore.comp_graph.value import Variable
 from mizore.meta_circuit.block import Block
 from mizore.meta_circuit.post_processor import SimpleProcessor
 from mizore.backend_circuit.gate import Gate
@@ -11,7 +10,7 @@ from mizore.comp_graph.comp_graph import GraphIterator
 from mizore.backend_circuit.noise import NoiseGate
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 
-from mizore.comp_graph.node.qc_node import QCircuitNode, set_node_expv_list
+from mizore.comp_graph.node.qc_node import QCircuitNode
 
 from mizore.transpiler.transpiler import Transpiler
 
@@ -42,7 +41,7 @@ class ErrorExtrapolation(Transpiler):
             if "noisy" not in qcnode.tags:
                 print("Not every backend_circuit is noisy")
                 continue
-            mitigated_value = [Value(0.0) for _ in range(len(qcnode.obs_list))]
+            mitigated_value = Value(0.0)
             coeff__square_sum = sum([abs(coeff)**2 for coeff in coeffs])
             for i_level in range(len(self.amp_list)):
                 noisy_circuit = qcnode.circuit.replica()
@@ -58,16 +57,12 @@ class ErrorExtrapolation(Transpiler):
                     noise_qcnode = QCircuitNode(noisy_circuit, qcnode.obs,
                                             name=qcnode.name + f"-ErrExtrp-{i_level}")
                 noise_qcnode.config = qcnode.config
-                res_expv_list = noise_qcnode.expv_list()
                 # TODO check this: Is this the optimal way to distribute the shot nums?
                 noise_qcnode.shot_num.bind_to(qcnode.shot_num*(abs(coeffs[i_level])**2/coeff__square_sum))
-                for i_expv in range(len(mitigated_value)):
-                    mitigated_value[i_expv] = mitigated_value[i_expv] + (coeffs[i_level] * res_expv_list[i_expv])
-            expv_list = qcnode.expv_list()
-            for i_expv in range(len(mitigated_value)):
-                mitigated_value[i_expv].name = f"ErrorExtrapExpv-{i_expv}"
-                expv_list[i_expv].bind_to(mitigated_value[i_expv])
-                expv_list[i_expv].set_to_not_random()
+                mitigated_value = mitigated_value + (coeffs[i_level] * noise_qcnode.expv)
+                mitigated_value.name = f"ErrorExtrapExpv"
+                qcnode.expv.bind_to(mitigated_value)
+                qcnode.expv.set_to_not_random()
             qcnode.in_graph = False
             node_changed = True
         if node_changed:

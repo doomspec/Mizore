@@ -20,10 +20,9 @@ class GradientCircuit(Transpiler):
             origin_bc = pqcnode.circuit
             n_param = origin_bc.n_param
             param_grads = []
-            n_obs = len(pqcnode.obs_list)
             for param_i in range(n_param):
                 shifted_bc = origin_bc.get_gradient_circuits(param_i)
-                param_grad = Value(jax_array([0.0] * n_obs)) if not pqcnode.is_single_obs else Value(0.0)
+                param_grad = Value(0.0)
                 shift_i = 0
                 for coeff, bc in shifted_bc:
                     new_pqc_node = DeviceCircuitNode(bc, pqcnode.obs,

@@ -16,7 +16,7 @@ from numpy.testing import assert_array_almost_equal
 
 def test_single_qubit():
     n_qubit = 1
-    hamil = QubitOperator("Z0") + QubitOperator("X0") + QubitOperator("Y0") + 1.0
+    hamil = QubitOperator("Z0") + QubitOperator("X0") + QubitOperator("Y0")# + 1.0
 
     blocks = [Rotation((0,), (1,), angle_shift=1.0),
               Rotation((0,), (3,), angle_shift=1.5),
@@ -30,14 +30,14 @@ def test_single_qubit():
 
     step_size = 1e-3
 
-    for i in range(2):
+    for i in range(10):
         curr_time = 0.0
         param = Value([0.0]*circuit.n_param)
 
         init_state = BackendState(n_qubit)
         init_state.set_Haar_random_state()
 
-        evol_grad, A, C = real_evol_gradient(circuit, hamil, param)
+        evol_grad, _ = real_evol_gradient(circuit, hamil, param)
 
         cg = CompGraph([evol_grad])
         CircuitRunner() | cg

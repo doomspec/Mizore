@@ -1,65 +1,85 @@
-from mizore.backend_circuit.backend_op import BackendOperator
-from mizore.backend_circuit.backend_state import BackendState
+from mizore.comp_graph.comp_graph import GraphIterator
+from mizore.transpiler.transpiler import Transpiler
 from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.operators import QubitOperator
-from mizore.transpiler.circuit_runner.state_processor import StateProcessor
-from mizore.transpiler.measurement.grouping.qwc import get_qwc_cliques_by_LDF
-from mizore.transpiler.measurement.l1sampling import L1Sampling, get_var_list
-from mizore import jax_array
-from mizore.transpiler.measurement.utils import unit_variance
+from mizore.transpiler.measurement.grouping_utils.qwc import get_qwc_cliques_by_LDF, get_shot_ratio_from_groupings
+import numpy as np
 
-
-class GroupingMeasurement(L1Sampling):
-    def __init__(self, method="LDF", state_ignorant=False):
-        super().__init__(state_ignorant=state_ignorant)
+class GroupingMeasurement(Transpiler):
+    def __init__(self, method="LDF"):
+        super().__init__()
         self.method = method
+
+    def transpile(self, graph_iterator: GraphIterator):
+        node: DeviceCircuitNode
+        for node in graph_iterator.by_type(DeviceCircuitNode):
+            if "GroupingMeasurement" not in node.aux_info_dict:
+                raise Exception()
+            state_ignorant = False
+            if "GroupingMeasurement" not in node.aux_obs_dict:
+                state_ignorant = True
+            aux_info_dict = node.aux_info_dict["GroupingMeasurement"]
+            coeff_list = np.array(aux_info_dict["coeff_list"])
+            if not state_ignorant:
+                op_prod_expv_list = np.array(node.aux_obs_dict["GroupingMeasurement"]["res"])
+                op_prod_expv_list = op_prod_expv_list**aux_info_dict["n_support_list"]
+            else:
+                op_prod_expv_list = np.array([1.0]*len(coeff_list))
+            var_coeff = np.sum(coeff_list*op_prod_expv_list)
+            var_coeff -= (node.expv - node.obs.constant) ** 2
+            node.expv.set_to_random_variable(var_coeff / node.shot_num, check_valid=False)
+
+    @classmethod
+    def prepare(cls, method="LDF", state_ignorant=False):
+        return GroupingMeasurementPrep(method=method, state_ignorant=state_ignorant)
+
+class GroupingMeasurementPrep(Transpiler):
+    def __init__(self, method, state_ignorant):
+        super().__init__()
+        self.method = method
+        self.state_ignorant = state_ignorant
         self.grouping_cache = {}
 
-    def get_state_processor(self, node):
-        if isinstance(node, DeviceCircuitNode):
-            groupings = []
-            for ob in node.obs_list:
-                if ob in self.grouping_cache.keys():
-                    groupings.append(self.grouping_cache[ob])
+    def transpile(self, graph_iterator: GraphIterator):
+        node: DeviceCircuitNode
+        for node in graph_iterator.by_type(DeviceCircuitNode):
+            obs = node.obs
+            if obs in self.grouping_cache:
+                grouping = self.grouping_cache[obs]
+            else:
+                grouping = get_qwc_cliques_by_LDF(obs)
+                self.grouping_cache[obs] = grouping
+            group_shot_ratios = get_shot_ratio_from_groupings(grouping, obs)
+
+            op_prod_list = []
+            coeff_list = []
+            n_support_list = []
+            for i_group in range(len(grouping)):
+                #print(grouping[i_group])
+                weight_list = []
+                sub_ops = []
+                for op_tuple in grouping[i_group]:
+                    op = QubitOperator.from_op_tuple(op_tuple)
+                    sub_ops.append(op)
+                    weight = obs.terms[op_tuple]
+                    weight_list.append(weight)
+                if not self.state_ignorant:
+                    for i in range(len(sub_ops)):
+                        for j in range(len(sub_ops)):
+                            op_prod = sub_ops[i] * sub_ops[j]
+                            op_tuple, _ = op_prod.get_unique_op_tuple()
+                            n_support = len(op_tuple)
+                            #print(repr(sub_ops[i]), repr(sub_ops[j]), sub_ops[i] * sub_ops[j])
+                            # if n_support == 0:
+                            #    continue
+                            op_prod_list.append(op_prod)
+                            coeff_list.append(weight_list[i] * weight_list[j] / group_shot_ratios[i_group])
+                            n_support_list.append(n_support)
                 else:
-                    grouping = get_qwc_cliques_by_LDF(ob)
-                    self.grouping_cache[ob] = grouping
-                    groupings.append(grouping)
-            return GroupingMeasurementStateProcessor(node, state_ignorant=self.state_ignorant)
-        else:
-            return None
-
-
-class GroupingMeasurementStateProcessor(StateProcessor):
-
-    def __init__(self, node, grouping_list, state_ignorant=False):
-        super().__init__("GroupingMeasurementVarCoeff")
-        self._weight_processor = process_state_ignorant if state_ignorant else process_state_aware
-        self.obs_list = node.obs_list
-        self.grouping_list = grouping_list
-
-    def process(self, state: BackendState) -> any:
-        return self._weight_processor(self.obs_list, self.grouping_list, state)
-
-    def post_process(self, node, process_res):
-        if not isinstance(node, DeviceCircuitNode):
-            return
-        var_coeffs = jax_array(process_res) if not node.is_single_obs else process_res[0]
-        node.expv.set_to_random_variable(var_coeffs / node.shot_num, check_valid=False)
-
-
-def process_state_ignorant(obs_list, grouping_list, state: BackendState):
-    var_coeffs = []
-    for ob in obs_list:
-        weight_sum = sum([abs(weight) for _, weight in ob.terms.items()])
-        var_coeffs.append(weight_sum ** 2 * unit_variance)
-    return var_coeffs
-
-
-def process_state_aware(obs_list, grouping_list, state: BackendState):
-    var_coeffs = []
-    for ob in obs_list:
-        var_list = get_var_list(ob, state)
-        weight_sum = sum(weight_list)
-        var_coeffs.append(weight_sum ** 2)
-    return var_coeffs
+                    for i in range(len(sub_ops)):
+                        for j in range(len(sub_ops)):
+                            coeff_list.append(weight_list[i] * weight_list[j] / group_shot_ratios[i_group])
+            node.aux_info_dict["GroupingMeasurement"] = {"coeff_list": coeff_list}
+            if not self.state_ignorant:
+                node.aux_obs_dict["GroupingMeasurement"] = {"obs": op_prod_list}
+                node.aux_info_dict["GroupingMeasurement"]["n_support_list"] = n_support_list

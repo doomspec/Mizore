@@ -48,6 +48,7 @@ _pauli_name_map = {
 
 _pauli_index_map = ["I", "X", "Y", "Z"]
 
+
 #####
 
 class QubitOperator(SymbolicOperator):
@@ -153,7 +154,19 @@ class QubitOperator(SymbolicOperator):
 
     @classmethod
     def from_qset_op_weight(cls, qset, pauli_op, weight):
-        return weight*QubitOperator.from_qset_op(qset, pauli_op)
+        return weight * QubitOperator.from_qset_op(qset, pauli_op)
+
+    @classmethod
+    def from_op_tuple(cls, op_tuple):
+        op = QubitOperator()
+        op.terms[op_tuple] = 1.0
+        return op
+
+    def get_unique_op_tuple(self) -> Tuple[Tuple, complex]:
+        op_tuples = list(self.terms.items())
+        if len(op_tuples) != 1:
+            raise Exception("There are more than one terms in" + str(op_tuples))
+        return op_tuples[0]
 
     @classmethod
     def from_terms_dict(cls, terms):
@@ -180,6 +193,13 @@ class QubitOperator(SymbolicOperator):
         l1_norm -= self.terms.get((), 0.0)
         return l1_norm
 
+    def iter_sub_ops(self):
+        for key, value in self.terms.items():
+            if key == ():
+                pass
+            new_op = QubitOperator()
+            new_op.terms = {key: 1.0}
+            yield new_op, value
 
     #####
 

@@ -10,7 +10,7 @@ from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators import QubitOperator
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
-from mizore.transpiler.measurement.l1sampling import L1Sampling
+from mizore.transpiler.measurement.l1 import L1Sampling
 from mizore import np_array
 from numpy.testing import assert_allclose
 

@@ -5,7 +5,7 @@ from mizore.meta_circuit.block.rotation_group import RotationGroup
 from mizore.meta_circuit.meta_circuit import MetaCircuit
 from mizore.operators import QubitOperator
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
-from mizore.transpiler.measurement.l1sampling import L1Sampling
+from mizore.transpiler.measurement.l1 import L1Sampling
 from mizore import np_array
 
 
@@ -13,10 +13,10 @@ def simple_pqc_node(param_var = 0.001):
     n_qubit = 2
     ops = QubitOperator('X0 Z1') + QubitOperator('X0 Y1')
     obs1 = QubitOperator('Z0')+QubitOperator('X0')
-    obs2 = QubitOperator('Z1')+QubitOperator('X1')
     blk = RotationGroup(ops, fixed_angle_shift=np_array([2.0, 1.0]))
     bc = MetaCircuit(n_qubit, [blk, blk])
-    node = DeviceCircuitNode(bc, [obs1, obs2], param=Variable(np_array([0.0]*4), np_array([param_var]*4)))
+    node = DeviceCircuitNode(bc, obs1, param=Variable(np_array([0.0]*4), np_array([param_var]*4)))
+    node.aux_obs_dict["test"] = {"obs":[QubitOperator('Z1')+QubitOperator('X1'), obs1]}
     return node
 
 #node0 = simple_pqc_node(param_var=0.0)
@@ -31,3 +31,5 @@ L1Sampling() | cg
 
 expv.show_value()
 expv.var.show_value()
+
+print(node1.aux_obs_dict["test"]["res"])

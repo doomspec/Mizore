@@ -31,10 +31,10 @@ def first_order_trotter(hamil: QubitOperator, delta_t, n_step) -> List[Gate]:
     hamil_no_const, const = hamil.remove_constant()
     gates_one_step: List[Gate] = []
     for qset, op, weight in hamil_no_const.qset_op_weight():
-        gates_one_step.append(PauliRotation(qset, op, weight * delta_t * 2))
+        gates_one_step.append(PauliRotation(qset, op, -weight * delta_t * 2))
     gate_list = []
     for i in range(n_step):
         gate_list.extend(gates_one_step)
     if const != 0.0:
-        gate_list.append(GlobalPhase(const * delta_t * n_step))
+        gate_list.append(GlobalPhase(-const * delta_t * n_step))
     return gate_list

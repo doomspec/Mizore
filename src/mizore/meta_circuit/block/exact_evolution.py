@@ -13,7 +13,7 @@ from mizore.operators.matrix_form import get_operator_matrix
 
 class ExactEvolution(Block):
     """
-    Block for implementing e^{iHt}
+    Block for implementing e^{-iHt}
     """
     def __init__(self, hamil: QubitOperator, init_time=0.0, to_decompose=False):
         """
@@ -43,7 +43,7 @@ class ExactEvolution(Block):
 
     def get_evolution_operator(self, evolve_time):
         # This part may change to use Sparse Matrix
-        time_evol_op = dot(dot(self.mat_P, diag(exp(1j * evolve_time * self.vec_D))),
+        time_evol_op = dot(dot(self.mat_P, diag(exp(-1j * evolve_time * self.vec_D))),
                            self.mat_P.T.conj())
         return time_evol_op
 

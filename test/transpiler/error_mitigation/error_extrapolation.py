@@ -4,7 +4,7 @@ from mizore.transpiler.estimator.simple_resource import SimpleResource
 from mizore.transpiler.circuit_optimize.simple_reducer import SimpleReducer
 from mizore.transpiler.error_mitigation.error_extrapolation import ErrorExtrapolation
 from mizore.transpiler.measurement.infinite import InfiniteMeasurement
-from mizore.transpiler.measurement.l1sampling import L1Sampling
+from mizore.transpiler.measurement.l1 import L1Sampling
 from mizore.transpiler.circuit_runner.circuit_runner import CircuitRunner
 from mizore.comp_graph.comp_graph import CompGraph
 from mizore.transpiler.noise_model.simple_noise import DepolarizingNoise
