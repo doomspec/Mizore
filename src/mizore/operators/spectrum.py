@@ -1,3 +1,4 @@
+from mizore.backend_circuit.backend_state import BackendState
 from mizore.operators import QubitOperator
 from mizore.operators.matrix_form import qubit_operator_sparse, get_operator_matrix
 from scipy.sparse.linalg import eigsh
@@ -32,4 +33,7 @@ def get_first_k_eigenstates(k, n_qubits, operator: QubitOperator, sparse=True, i
 
 
 def get_ground_state(n_qubits, operator: QubitOperator, sparse=True, initial_guess=None):
-    return get_first_k_eigenstates(1, n_qubits, operator, sparse=sparse, initial_guess=initial_guess)
+    energy, vec = get_first_k_eigenstates(1, n_qubits, operator, sparse=sparse, initial_guess=initial_guess)
+    state = BackendState(n_qubits)
+    state.set_vector(vec[0])
+    return energy[0], state

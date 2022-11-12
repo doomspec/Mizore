@@ -48,6 +48,7 @@ _pauli_name_map = {
 
 _pauli_index_map = ["I", "X", "Y", "Z"]
 
+PauliTuple = Tuple[Tuple[int, str], ...]
 
 #####
 
@@ -157,9 +158,9 @@ class QubitOperator(SymbolicOperator):
         return weight * QubitOperator.from_qset_op(qset, pauli_op)
 
     @classmethod
-    def from_op_tuple(cls, op_tuple):
+    def from_pauli_tuple(cls, pauli_tuple: PauliTuple):
         op = QubitOperator()
-        op.terms[op_tuple] = 1.0
+        op.terms[pauli_tuple] = 1.0
         return op
 
     def get_unique_op_tuple(self) -> Tuple[Tuple, complex]:
@@ -178,6 +179,12 @@ class QubitOperator(SymbolicOperator):
         return deepcopy(self)
 
     def remove_constant(self) -> Tuple[QubitOperator, complex]:
+        """
+        Remove the constant part of the operator
+
+        Returns:
+            (new operator, constant)
+        """
         new_op = self.replica()
         if () in new_op.terms.keys():
             const = new_op.terms[()]
@@ -189,7 +196,7 @@ class QubitOperator(SymbolicOperator):
     def get_l1_norm_omit_const(self):
         l1_norm = 0.0
         for weight in self.terms.values():
-            l1_norm += weight
+            l1_norm += abs(weight)
         l1_norm -= self.terms.get((), 0.0)
         return l1_norm
 
