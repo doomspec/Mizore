@@ -589,7 +589,7 @@ class Value:
 
     @classmethod
     def matrix(cls, param_mat: List[List[Value]]):
-        value_mat = [None]*len(param_mat)
+        value_mat = [None] * len(param_mat)
         for i in range(len(param_mat)):
             value_mat[i] = Value.array(param_mat[i])
         return Value.array(value_mat)

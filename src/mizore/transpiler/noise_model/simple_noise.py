@@ -36,7 +36,6 @@ class DepolarizingNoise(Transpiler):
             node.expv.set_to_not_random()
 
 
-
 class SimpleNoiseMaker(SimpleProcessor):
     name = "noise_maker"
 

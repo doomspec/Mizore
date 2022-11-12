@@ -52,8 +52,9 @@ def get_random_operator(n_qubit, n_term, weight_sum, seed):
 
     op = QubitOperator()
     op.terms = terms
-    op = op*(weight_sum/sampled_weight_norm)
+    op = op * (weight_sum / sampled_weight_norm)
     return op
+
 
 if __name__ == '__main__':
     hamil = get_random_operator(8, 100, 100, 100)

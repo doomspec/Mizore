@@ -63,8 +63,8 @@ def H_mat(ref_circuit: MetaCircuit, hamil: QubitOperator, n_basis: int, delta: f
         H[0][j] = H_mat_term(ref_circuit, hamil, 0.0, delta * j)
         H[j][0] = H[0][j].conjugate()
     for i in range(1, n_basis):
-        for j in range(i+1, n_basis):
-            H[i][j] = H[0][j-i]
+        for j in range(i + 1, n_basis):
+            H[i][j] = H[0][j - i]
             H[j][i] = H[i][j].conjugate()
     for i in range(0, n_basis):
         H[i] = Value.array(H[i])
@@ -80,8 +80,8 @@ def S_mat(ref_circuit: MetaCircuit, hamil: QubitOperator, n_basis: int, delta: f
         S[0][j] = S_mat_term(ref_circuit, hamil, 0.0, delta * j)
         S[j][0] = S[0][j].conjugate()
     for i in range(1, n_basis):
-        for j in range(i+1, n_basis):
-            S[i][j] = S[0][j-i]
+        for j in range(i + 1, n_basis):
+            S[i][j] = S[0][j - i]
             S[j][i] = S[i][j].conjugate()
     for i in range(0, n_basis):
         S[i] = Value.array(S[i])

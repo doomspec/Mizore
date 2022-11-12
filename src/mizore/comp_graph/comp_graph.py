@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .value import Value
     from .comp_node import CompNode
@@ -8,8 +9,6 @@ from collections.abc import Iterable
 from typing import Set, Dict, Union
 
 from mizore.utils.typed_log import TypedLog
-
-
 
 
 class CompGraph:

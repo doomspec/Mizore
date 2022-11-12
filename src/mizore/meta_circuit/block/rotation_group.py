@@ -38,11 +38,14 @@ class RotationGroup(Block):
     def get_gradient_blocks(self, param_index: int, params=None):
         this_weight = self.qset_op_weights[param_index][2]
         angle_shift1 = np_array([0.0] * self.n_param)
-        angle_shift1[param_index] += pi / (2*this_weight)
+        angle_shift1[param_index] += pi / (2 * this_weight)
         angle_shift2 = np_array([0.0] * self.n_param)
-        angle_shift2[param_index] -= pi / (2*this_weight)
-        return [(0.5*this_weight, RotationGroup(qset_op_weight=self.qset_op_weights, fixed_angle_shift=angle_shift1+self.fixed_param)),
-                (-0.5*this_weight, RotationGroup(qset_op_weight=self.qset_op_weights, fixed_angle_shift=angle_shift2+self.fixed_param))]
+        angle_shift2[param_index] -= pi / (2 * this_weight)
+        return [(0.5 * this_weight,
+                 RotationGroup(qset_op_weight=self.qset_op_weights, fixed_angle_shift=angle_shift1 + self.fixed_param)),
+                (-0.5 * this_weight,
+                 RotationGroup(qset_op_weight=self.qset_op_weights, fixed_angle_shift=angle_shift2 + self.fixed_param))]
+
 
 def get_pauli_rotation(pauli_term, angle):
     qset, ops, weight = pauli_term

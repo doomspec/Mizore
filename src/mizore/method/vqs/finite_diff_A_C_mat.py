@@ -1,4 +1,3 @@
-
 from mizore import jax_array, np_array
 import jax.numpy as jnp
 
@@ -37,7 +36,6 @@ def get_A_by_finite_diff(circuit, param_):
 
 
 def finite_diff_pauli_hamil_inner_product(circuit: MetaCircuit, index, qset_op_weight, param, eps=1e-5):
-
     state0 = circuit.get_backend_state(param)
 
     param[index] += eps
@@ -60,7 +58,8 @@ def get_C_by_finite_diff(circuit, operator, param_):
     for i_param in range(circuit.n_param):
         diff_hamil_innerp = 0.0
         for qset_op_weight in operator.qset_op_weight():
-            pauli_innerp = finite_diff_pauli_hamil_inner_product(circuit, i_param, qset_op_weight, param) * qset_op_weight[2]
+            pauli_innerp = finite_diff_pauli_hamil_inner_product(circuit, i_param, qset_op_weight, param) * \
+                           qset_op_weight[2]
             diff_hamil_innerp += pauli_innerp
         C.append(diff_hamil_innerp)
     C = jnp.array(C)

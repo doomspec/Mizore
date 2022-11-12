@@ -12,6 +12,7 @@ from mizore.operators.matrix_form import get_operator_matrix
 from scipy.linalg import eigh
 import numpy as np
 
+
 def krylov_kernel_mat_classical(ref_circuit: MetaCircuit, hamil: QubitOperator,
                                 use_hamil_kernel: bool, n_basis: int, delta: float):
     assert n_basis > 1
@@ -49,7 +50,7 @@ def krylov_kernel_mat_classical(ref_circuit: MetaCircuit, hamil: QubitOperator,
     for i in range(n_basis):
         M[i][i] = self_innerp_list[i]
         for j in range(i + 1, n_basis):
-            M[i][j] = innerp_list[j-i]
+            M[i][j] = innerp_list[j - i]
             M[j][i] = M[i][j].conjugate()
     return np.array(M)
 
@@ -62,13 +63,14 @@ def S_mat_classical(ref_circuit: MetaCircuit, hamil: QubitOperator, n_basis: int
     return krylov_kernel_mat_classical(ref_circuit, hamil, False, n_basis, delta)
 
 
-def quantum_krylov_single_ref_classical(ref_circuit: MetaCircuit, hamil: QubitOperator, n_basis: int, delta: float, get_H_S=False):
+def quantum_krylov_single_ref_classical(ref_circuit: MetaCircuit, hamil: QubitOperator, n_basis: int, delta: float,
+                                        get_H_S=False):
     hamil_no_const, const = hamil.remove_constant()
     H = H_mat_classical(ref_circuit, hamil_no_const, n_basis, delta)
     S = S_mat_classical(ref_circuit, hamil_no_const, n_basis, delta)
-    S += np.eye(len(S))*1e-12
+    S += np.eye(len(S)) * 1e-12
     try:
-        #eigv = eigh(np.linalg.inv(S)@H)[0]
+        # eigv = eigh(np.linalg.inv(S)@H)[0]
         eigv = eigh(H, S, eigvals_only=True)
     except:
         print("Eigenvalue of S", eigh(S, eigvals_only=True))

@@ -9,4 +9,4 @@ class Parameter(Value):
         super().__init__(name=name)
         self.set_value(init_val)
         # When set_value is call and the param is linked to another param, is_parameter will be turned to False.
-        self.is_parameter= True
+        self.is_parameter = True

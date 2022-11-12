@@ -40,7 +40,7 @@ class SimpleResource(Transpiler):
             time += hardware.readout_time
             res["time"] = time
             try:
-                res["total_time"] = float(node.shot_num.value()*time)
+                res["total_time"] = float(node.shot_num.value() * time)
             except Exception as e:
                 print(e)
                 pass

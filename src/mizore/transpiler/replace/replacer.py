@@ -19,5 +19,3 @@ class Replacer(Transpiler):
 
     def replace(self, circuit: MetaCircuit):
         raise NotImplementedError()
-
-

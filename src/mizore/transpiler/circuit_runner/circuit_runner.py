@@ -33,7 +33,7 @@ class CircuitRunner(Transpiler):
             aux_obs_indices_list.append(aux_obs_indices)
             node_params = node.params.value()
             params_means.append(node_params)
-            args_list.append((node.circuit, [node.obs]+aux_obs_list, node_params, node.config))
+            args_list.append((node.circuit, [node.obs] + aux_obs_list, node_params, node.config))
 
         """
         Important thing when use Pool.
@@ -122,7 +122,7 @@ def assign_res_to_obs_dict(res_list, key_index: Dict, obs_dict):
 
 def set_expv(node: QCircuitNode, expv_res, aux_obs_indices):
     node.expv.set_value(expv_res[0])
-    if len(expv_res)>1:
+    if len(expv_res) > 1:
         assign_res_to_obs_dict(expv_res[1:], aux_obs_indices, node.aux_obs_dict)
 
 

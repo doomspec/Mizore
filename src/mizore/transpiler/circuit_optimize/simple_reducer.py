@@ -19,6 +19,7 @@ class SimpleReducer(Transpiler):
             circuit: MetaCircuit = node.circuit
             circuit.add_post_process(ReduceProcessor())
 
+
 class ReduceProcessor(SimpleProcessor):
     name = "gate_reducer"
 

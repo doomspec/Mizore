@@ -15,6 +15,7 @@ class ExactEvolution(Block):
     """
     Block for implementing e^{-iHt}
     """
+
     def __init__(self, hamil: QubitOperator, init_time=0.0, to_decompose=False):
         """
         :param hamil: The hamiltonian to evolve
@@ -29,7 +30,6 @@ class ExactEvolution(Block):
         # We will diagonalize the Hamiltonian H into H=P*D*P^dagger
         self.vec_D = None
         self.mat_P = None
-
 
         self.to_decompose = to_decompose
 

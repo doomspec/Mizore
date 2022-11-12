@@ -42,7 +42,7 @@ class ErrorExtrapolation(Transpiler):
                 print("Not every backend_circuit is noisy")
                 continue
             mitigated_value = Value(0.0)
-            coeff__square_sum = sum([abs(coeff)**2 for coeff in coeffs])
+            coeff__square_sum = sum([abs(coeff) ** 2 for coeff in coeffs])
             for i_level in range(len(self.amp_list)):
                 noisy_circuit = qcnode.circuit.replica()
                 if self.amp_list[i_level] != 1.0:
@@ -55,10 +55,10 @@ class ErrorExtrapolation(Transpiler):
                     noise_qcnode.params.bind_to(qcnode.params)
                 else:
                     noise_qcnode = QCircuitNode(noisy_circuit, qcnode.obs,
-                                            name=qcnode.name + f"-ErrExtrp-{i_level}")
+                                                name=qcnode.name + f"-ErrExtrp-{i_level}")
                 noise_qcnode.config = qcnode.config
                 # TODO check this: Is this the optimal way to distribute the shot nums?
-                noise_qcnode.shot_num.bind_to(qcnode.shot_num*(abs(coeffs[i_level])**2/coeff__square_sum))
+                noise_qcnode.shot_num.bind_to(qcnode.shot_num * (abs(coeffs[i_level]) ** 2 / coeff__square_sum))
                 mitigated_value = mitigated_value + (coeffs[i_level] * noise_qcnode.expv)
                 mitigated_value.name = f"ErrorExtrapExpv"
                 qcnode.expv.bind_to(mitigated_value)
@@ -78,7 +78,7 @@ class ErrorExtrapolation(Transpiler):
         """
         beta = [0.0] * len(amp_list)
         for k in range(len(amp_list)):
-            beta_k = 1 # TODO check here
+            beta_k = 1  # TODO check here
             for i in range(len(amp_list)):
                 if i != k:
                     beta_k *= amp_list[i] / (amp_list[k] - amp_list[i])

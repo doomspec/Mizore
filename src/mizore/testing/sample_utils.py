@@ -12,7 +12,8 @@ def get_mean_var(sampled):
     return mean, var
 
 
-def operation_test_binary(v1: Value, v2: Value, op, n_repeat=10000, use_jit=False) -> Tuple[Tuple[ndarray, ndarray], Tuple[ndarray, ndarray]]:
+def operation_test_binary(v1: Value, v2: Value, op, n_repeat=10000, use_jit=False) -> Tuple[
+    Tuple[ndarray, ndarray], Tuple[ndarray, ndarray]]:
     """
     :return: a tuple for mean and a tuple for variance. In each tuple, the first element is from sampling and the
                 second element is from auto-variance

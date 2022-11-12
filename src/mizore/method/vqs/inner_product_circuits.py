@@ -186,7 +186,7 @@ def C_mat_real_ite(circuit: MetaCircuit, hamil: QubitOperator, param: Value):
     for i_param in range(circuit.n_param):
         diff_hamil_innerp = diff_pauli_hamil_inner_product_real(circuit, i_param, modified_hamil, param)
         const_coeff = diff_pauli_hamil_inner_product_real(circuit, i_param, QubitOperator(f"X{circuit.n_qubit}"), param)
-        C.append(diff_hamil_innerp + const_coeff*(const-current_energy))
-        #C.append(diff_hamil_innerp)
+        C.append(diff_hamil_innerp + const_coeff * (const - current_energy))
+        # C.append(diff_hamil_innerp)
     C = Value.array(C)
     return C, current_energy

@@ -8,6 +8,7 @@ from mizore.operators import QubitOperator
 from jax.numpy.linalg import lstsq
 import jax.numpy as jnp
 
+
 def real_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Optional[Value] = None,
                        rcond=None, calc_Delta=False) -> Tuple[Value, Dict]:
     """
@@ -23,14 +24,13 @@ def real_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Option
     A = A_mat_real(circuit, param)
     C = C_mat_imag_rte(circuit, hamil_no_const, param)
 
-
     # Here we use lstsq because we are simulating e^{-iHt}
     evol_grad = Value.binary_operator(A, C, lambda A_, b: lstsq(A_, b, rcond=rcond)[0])
 
     res_dict = {"A": A, "C": C}
 
     if calc_Delta:
-        hamil_sqr = hamil_no_const*hamil_no_const
+        hamil_sqr = hamil_no_const * hamil_no_const
         hamil_sqr.compress()
         hamil_sqr_node = QCircuitNode(circuit, hamil_sqr, name="HamilSqr")
         Delta_sqr = evol_grad.dot(Value.binary_operator(A.value(), evol_grad, jnp.dot)) \

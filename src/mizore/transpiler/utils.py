@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+
 def get_content(obj_list: List, prefix=None):
     if prefix is None:
         return obj_list[-1]

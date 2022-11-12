@@ -7,8 +7,9 @@ from mizore.operators import QubitOperator
 from jax.numpy.linalg import lstsq, solve
 
 
-def imag_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Union[Value, None] = None, rcond=None) -> Tuple[
-    Value, Value, Value, Value]:
+def imag_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Union[Value, None] = None, rcond=None) -> \
+        Tuple[
+            Value, Value, Value, Value]:
     """
     Get the gradient of the params in the circuit for the closest move to the evolution e^{-Ht}
     :return: x, A_real, C_real
@@ -20,7 +21,7 @@ def imag_evol_gradient(circuit: MetaCircuit, hamil: QubitOperator, param: Union[
     C, current_energy = C_mat_real_ite(circuit, hamil, param)
 
     evol_grad = Value.binary_operator(A, C, lambda A_, b: lstsq(A_, -b, rcond=rcond)[0])
-    #evol_grad = Value.binary_operator(A, C, lambda A_, b: solve(A_, -b))
+    # evol_grad = Value.binary_operator(A, C, lambda A_, b: solve(A_, -b))
     evol_grad.name = "ITE-Grad"
     # Here we use -b instead of lstsq because we are solving Ax=-C
     return evol_grad, A, C, current_energy

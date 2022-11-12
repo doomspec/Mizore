@@ -33,8 +33,8 @@ class QCircuitNode(CompNode):
 
         self.aux_obs_dict = {}  # {"key":{"obs":[],"res":[],"config":{}}}
         self.aux_info_dict = {}
-        #self.save_state = False
-        #self.saved_state: Union[BackendState, None] = None
+        # self.save_state = False
+        # self.saved_state: Union[BackendState, None] = None
 
     @property
     def circuit(self) -> MetaCircuit:

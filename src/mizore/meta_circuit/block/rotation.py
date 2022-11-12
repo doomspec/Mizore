@@ -27,8 +27,10 @@ class Rotation(Block):
 
     def get_gradient_blocks(self, param_index: int, params=None):
         return [
-            (0.5*self.weight, Rotation(self.qset, self.pauli_ops, self.weight, angle_shift=pi / (2 * self.weight) + self.fixed_param)),
-            (-0.5*self.weight, Rotation(self.qset, self.pauli_ops, self.weight, angle_shift=-pi / (2 * self.weight) + self.fixed_param))]
+            (0.5 * self.weight,
+             Rotation(self.qset, self.pauli_ops, self.weight, angle_shift=pi / (2 * self.weight) + self.fixed_param)),
+            (-0.5 * self.weight,
+             Rotation(self.qset, self.pauli_ops, self.weight, angle_shift=-pi / (2 * self.weight) + self.fixed_param))]
 
     @classmethod
     def get_rotation_blocks(cls, qubit_operator: QubitOperator):

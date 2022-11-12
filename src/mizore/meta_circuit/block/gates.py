@@ -22,5 +22,3 @@ class Gates(Block):
 
     def get_gates(self, params):
         return self.gates
-
-
