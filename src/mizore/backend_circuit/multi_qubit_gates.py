@@ -4,12 +4,12 @@ from mizore.backend_circuit.gate import Gate
 from qulacs.gate import Pauli as qulacs_Pauli
 from .one_qubit_gates import X, Y, Z
 
-qulacs_pauli_gate_map = [None,X, Y, Z]
+qulacs_pauli_gate_map = [None, X, Y, Z]
 
 
 class PauliGate(Gate):
     """
-    Implement P
+    Implement Pauli Gate
     """
 
     def __init__(self, qset: List[int], pauli_ops: List[int]):
