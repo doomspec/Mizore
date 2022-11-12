@@ -18,6 +18,7 @@ def iter_qulacs_ops(ops: QubitOperator, n_qubit) -> Tuple[GeneralQuantumOperator
         qulacs_op.add_operator(1.0, paulistring_to_qulacs_string(op))
         yield qulacs_op, weight
 
+
 index_to_pauli_name = {
     0: "I",
     1: "X",
