@@ -75,7 +75,7 @@ if __name__ == '__main__':
     from chemistry.simple_mols import large_12_qubit_lih, large_14_qubit_h2o
     from mizore.operators.spectrum import get_ground_state
 
-    n_shot = 1000
+    n_shot = 3000
     hamil = large_14_qubit_h2o()
     n_qubit = 14
     impl = DerandMeasureImpl(hamil, n_shot)
@@ -83,4 +83,4 @@ if __name__ == '__main__':
     mean, var = impl.get_mean_and_variance_from_multi_exp(200, state, pbar=True)
     print(energy)
     print(mean, var * n_shot)
-    print(np.sqrt(var))
+    print(np.sqrt(var * n_shot / 1000))

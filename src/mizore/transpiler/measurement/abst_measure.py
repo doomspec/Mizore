@@ -6,6 +6,8 @@ from mizore.operators import QubitOperator
 from mizore.transpiler.transpiler import Transpiler
 import numpy as np
 
+from tqdm import trange
+
 
 class MeasureImpl:
     def __init__(self, observable: QubitOperator, n_shot):
@@ -40,9 +42,10 @@ class MeasureImpl:
             one_shot_estimations.extend(res)
         return np.average(one_shot_estimations)
 
-    def get_mean_and_variance_from_multi_exp(self, n_exp, state: BackendState):
+    def get_mean_and_variance_from_multi_exp(self, n_exp, state: BackendState, pbar=False):
         observed_means = []
-        for i in range(n_exp):
+        range_ = trange(n_exp) if pbar else range(n_exp)
+        for i in range_:
             observed_mean = self.estimate_by_state(state)
             observed_means.append(observed_mean)
         var_experiment = np.var(observed_means)

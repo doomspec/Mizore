@@ -7,10 +7,12 @@ from mizore.comp_graph.node.dc_node import DeviceCircuitNode
 from mizore.operators import QubitOperator
 from mizore.transpiler.measurement.abst_measure import MeasureTranspiler, MeasureImpl
 from mizore.transpiler.measurement.policy.policy import UniversalPolicy
+from mizore.transpiler.measurement.vectorize_helper import get_prime_pword_tensor, measure_res_for_pwords
 from mizore.transpiler.transpiler import Transpiler
 
 import numpy as np
-import jax.numpy as jnp
+# import jax.numpy as xnp
+import numpy as xnp
 
 UniversalMeasureName = "UniversalMeasure"
 
@@ -47,48 +49,23 @@ class UniversalMeasurePrep(Transpiler):
                 pass
 
 
-pauli_op_to_prime = {
-    "X": 2,
-    "Y": 3,
-    "Z": 5
-}
-
-
-def get_prime_pword_tensor(pwords: list, n_qubit):
-    pword_tensors = []
-    for pword in pwords:
-        prime_repr = [0] * n_qubit
-        for i_qubit, op in pword:
-            prime_repr[i_qubit] = pauli_op_to_prime[op]
-        pword_tensors.append(prime_repr)
-    return jnp.array(pword_tensors)
-
-
-def measure_res_for_pwords(pword_in_prime_tensors, pword_measured_in_complement):
-    # In prod, only 30, -30, and 0 are valid data. We should eliminate other values.
-    prod = pword_in_prime_tensors * pword_measured_in_complement
-    is_qwc = 1 - jnp.sign(jnp.sum(jnp.abs(jnp.abs(jnp.abs(prod) - 15) - 15), axis=1))
-    minus_30_count = jnp.sum(1 - jnp.abs(jnp.sign(prod + 30)), axis=1)
-    measure_res = is_qwc * jnp.power(-1, minus_30_count)
-    return measure_res
-
-
 class UniversalMeasureImpl(MeasureImpl):
-    def __init__(self, observable: QubitOperator, n_shot, policy):
+    def __init__(self, observable: QubitOperator, n_shot, policy, derand=""):
         super().__init__(observable, n_shot)
         self.policy: UniversalPolicy = policy
+        self.derand = derand
 
     def estimate_by_state(self, state):
         # Prepare the accumulators
         n_qubit = self.policy.n_qubit
-        pwords_from_each_head = self.policy.sample_pwords(self.n_shot, time.time_ns())
+        pwords_from_each_head = self.policy.generate_pwords(self.n_shot, time.time_ns())
         hamil_pword_cover_count = {}
         hamil_pword_res = {}
         for i_head in range(len(self.policy.heads_children)):
             children = self.policy.heads_children[i_head]
             children_prime_repr = get_prime_pword_tensor(children, n_qubit)
-            children_res = jnp.zeros((len(children),))
-            children_cover_count = jnp.zeros((len(children),))
+            children_res = xnp.zeros((len(children),))
+            children_cover_count = xnp.zeros((len(children),))
             pwords_tuples = [tuple(int(p) for p in pw) for pw in pwords_from_each_head[i_head]]
             if len(pwords_tuples) == 0:
                 continue
@@ -96,13 +73,13 @@ class UniversalMeasureImpl(MeasureImpl):
             res_list = []
             for pword_tuple, n_shot in pword_counts.items():
                 res = state.sample_pauli_measure_by_pauliword_nums(pword_tuple, n_shot, seed=time.time_ns())
-                res_list.append(jnp.array(res))
-            measure_res_list = jnp.concatenate(res_list, axis=0)
+                res_list.append(xnp.array(res))
+            measure_res_list = xnp.concatenate(res_list, axis=0)
 
             for res in measure_res_list:
                 res_num_for_pwords = measure_res_for_pwords(children_prime_repr, res)
                 children_res += res_num_for_pwords
-                children_cover_count += jnp.abs(res_num_for_pwords)
+                children_cover_count += xnp.abs(res_num_for_pwords)
 
             for i_children in range(len(children)):
                 child_tuple = children[i_children]
@@ -159,13 +136,17 @@ class UniversalMeasure(MeasureTranspiler):
 
 if __name__ == '__main__':
     from mizore.transpiler.measurement.policy.L1 import L1_policy_maker
+    from mizore.transpiler.measurement.policy.LDF import LDF_policy_maker
     from chemistry.simple_mols import simple_4_qubit_lih, large_12_qubit_lih
     from mizore.backend_circuit.backend_state import BackendState
+    from mizore.operators.spectrum import get_ground_state
 
     hamil, _ = large_12_qubit_lih().remove_constant()
     n_qubit = 12
-    policy = L1_policy_maker(hamil, n_qubit)
-    n_shot = 1000
+    policy = LDF_policy_maker(hamil, n_qubit)
+    # policy.derand = "head"
+    n_shot = 100
     impl = UniversalMeasureImpl(hamil, n_shot, policy)
-    mean, var = impl.get_mean_and_variance_from_multi_exp(3, BackendState(n_qubit))
+    energy, state = get_ground_state(n_qubit, hamil)
+    mean, var = impl.get_mean_and_variance_from_multi_exp(20, state)
     print(mean, var * n_shot)
