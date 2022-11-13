@@ -1,6 +1,4 @@
-from numpy.linalg import norm
 from numpy.random import default_rng
-import numpy as np
 from mizore.operators import QubitOperator
 
 pauli_name_map = ["I", "X", "Y", "Z"]

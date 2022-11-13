@@ -1,5 +1,4 @@
 from typing import Tuple
-
 from mizore.comp_graph.value import Value
 import numpy as np
 from numpy import ndarray
