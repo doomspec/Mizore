@@ -70,11 +70,11 @@ def generate_multi_headed_LBCS_policy(hamil: QubitOperator, n_qubit, n_head, max
             if batch_n >= n_pauliwords:
                 batch_n = 0
                 n_epoch += 1
-                if n_epoch % 5 == -1:
+                if n_epoch % 5 == 0:
                     rng_key, shuffle_key = jax.random.split(rng_key)
-                    pauli_tensor = jax.random.shuffle(shuffle_key, pauli_tensor)
-                    coeffs = jax.random.shuffle(shuffle_key, coeffs)
-                    print(pauli_tensor.shape)
+                    pauli_tensor = jax.random.permutation(shuffle_key, pauli_tensor)
+                    coeffs = jax.random.permutation(shuffle_key, coeffs)
+                    # print(pauli_tensor.shape)
                 if n_epoch % 30 == 0:
                     # print(loss_value)
                     pbar.set_description('Loss: {:.6f}'.format(loss_value))
@@ -94,9 +94,8 @@ def multi_headed_LBCS_from_file(hamil, n_qubit, path):
 
 
 if __name__ == '__main__':
-    from chemistry.simple_mols import simple_4_qubit_lih, large_12_qubit_lih
-    from mizore.backend_circuit.backend_state import BackendState
-    from mizore.operators.spectrum import get_ground_state
+    from mizore.testing.hamil import get_test_hamil
 
-    hamil, _ = large_12_qubit_lih().remove_constant()
+    # jax.config.update('jax_platform_name', 'cuda')
+    hamil, _ = get_test_hamil("mol", "LiH_12_BK").remove_constant()
     generate_multi_headed_LBCS_policy(hamil, 12, 300)

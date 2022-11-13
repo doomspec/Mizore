@@ -1,5 +1,12 @@
 # Mizore
 
+## Setup a development environment
+
+1. Create a conda env by `conda create -n mizore python=3.10`.
+2. Enter the env by `conda activate mizore`.
+3. Use `conda-develop /your/path/to/Mizore/src` to add `mizore` as a package in development.
+4. Enjoy your development
+
 ## Project structure
 
 `block_circuit`: High level quantum circuit which supports inverse, parameterization and other handy usages. We expect
@@ -20,3 +27,4 @@ A transpiler can
 - transform tasks,
 - calculate resources
 - or **trade tasks with resources**.
+
