@@ -6,7 +6,7 @@ from mizore.transpiler.measurement.grouping_utils.qwc import is_qwc, get_coverin
 from mizore.transpiler.measurement.policy.policy import UniversalPolicy, get_heads_tensor_from_pwords
 
 
-def OGM_policy_maker(hamil: QubitOperator, n_qubit):
+def OGM_policy_maker(hamil: QubitOperator, n_qubit, n_term_cutoff=-1):
     hamil, constant = hamil.remove_constant()
     assert constant == 0.0
 
@@ -14,6 +14,9 @@ def OGM_policy_maker(hamil: QubitOperator, n_qubit):
     hamil_terms = {k: abs(v) for k, v in hamil.terms.items()}
     ranked_pwords = sorted(hamil_terms, key=hamil_terms.get, reverse=True)
     abs_coeffs = [hamil_terms[pword] for pword in ranked_pwords]
+    # Do cutoff
+    if n_term_cutoff != -1:
+        ranked_pwords = ranked_pwords[:n_term_cutoff]
     added_terms = set()
     groups = []
     group_mapping = [set() for pword in ranked_pwords]

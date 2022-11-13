@@ -17,7 +17,7 @@ class UniversalPolicy:
         self._n_qubit = n_qubit
         self._heads_tensor = np.array(heads_tensor)
         self._heads_tensor_filled = None
-        self._probs = np.array(probs)
+        self._heads_ratio = np.array(probs)
         self._heads_children = heads_children
         self._hamil: QubitOperator = hamil
         self._hamil_term_tensor = hamil_term_tensor
@@ -28,12 +28,20 @@ class UniversalPolicy:
         return self._n_qubit
 
     @property
+    def heads_tensor(self):
+        return self._heads_tensor
+
+    @property
+    def heads_ratio(self):
+        return self._heads_ratio
+
+    @property
     def heads_children(self):
         return self._heads_children
 
     def validate_probs(self):
-        if abs(sum(self._probs) - 1.0) > 1e-6:
-            raise Exception(f"{sum(self._probs)} is far from 1.0!")
+        if abs(sum(self._heads_ratio) - 1.0) > 1e-6:
+            raise Exception(f"{sum(self._heads_ratio)} is far from 1.0!")
         heads_qubit_prob = [np.sum(ht, axis=1) for ht in self._heads_tensor]
         for h in heads_qubit_prob:
             for v in h:
@@ -62,7 +70,7 @@ class UniversalPolicy:
         overlap_by_heads = self.get_children_overlap_by_heads()
         overlap_dict = {}
         for i in range(len(self._heads_tensor)):
-            head_prob = self._probs[i]
+            head_prob = self._heads_ratio[i]
             children = self._heads_children[i]
             overlap_list = overlap_by_heads[i]
             for j in range(len(children)):
@@ -91,7 +99,7 @@ class UniversalPolicy:
 
     def sample_pwords(self, n_shot, seed):
         n_head = len(self._heads_tensor)
-        head_indices = np.random.choice(len(self._heads_tensor), n_shot, p=self._probs)
+        head_indices = np.random.choice(len(self._heads_tensor), n_shot, p=self._heads_ratio)
         shot_nums_by_head = [0] * n_head
         for head in head_indices:
             shot_nums_by_head[head] += 1
@@ -99,7 +107,7 @@ class UniversalPolicy:
 
     def sample_pwords_with_allocate_heads(self, n_shot, seed):
         allocated_shots = 0
-        allocation = self._probs * n_shot
+        allocation = self._heads_ratio * n_shot
         floored_allocation = np.floor(allocation)
         allocation_diff = allocation - floored_allocation
         random_offset = np.random.binomial(1, allocation_diff, len(allocation_diff))
