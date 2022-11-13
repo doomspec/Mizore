@@ -9,6 +9,10 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+
+"""The file is modified by Zijian Zhang for the Mizore project"""
+import pickle
+
 """SymbolicOperator is the base class for FermionOperator and QubitOperator"""
 
 import abc
@@ -117,7 +121,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         """Whether factors acting on different indices commute."""
         pass
 
-    def __init__(self, term=None, coefficient=1.):
+    def __init__(self, term=None, coefficient=1., n_site=-1):
         if not isinstance(coefficient, COEFFICIENT_TYPES):
             raise ValueError(
                 'Coefficient must be a numeric type. Got {}'.format(
@@ -154,6 +158,37 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         self.terms[term] = coefficient
 
         self.hash_cache = None
+
+        self.n_site = n_site
+
+    def get_data_dict(self):
+        data = {
+            "n_site": self.n_site,
+            "term": self.terms
+        }
+        return data
+
+    @classmethod
+    def from_data_dict(cls, data):
+        op = cls.from_terms_dict(data["term"])
+        op.n_site = data["n_site"]
+        return op
+
+    def save_to_op_file(self, title, folder_path):
+        with open(folder_path + f"{title}.op", "wb") as f:
+            pickle.dump(self.get_data_dict(), f)
+
+    @classmethod
+    def read_op_file(cls, title, folder_path):
+        with open(folder_path + f"{title}.op", "rb") as f:
+            data = pickle.load(f)
+        return cls.from_data_dict(data)
+
+    @classmethod
+    def from_terms_dict(cls, terms):
+        op = cls()
+        op.terms = terms
+        return op
 
     def __hash__(self):
         # if self.hash_cache is not None:
@@ -339,7 +374,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         """Return an easy-to-read string representation."""
         if not self.terms:
             return '0'
-        string_rep = ''
+        string_rep = '' if self.n_site == -1 else f'n_site: {self.n_site}\n'
         for term, coeff in sorted(self.terms.items()):
             if self._issmall(coeff):
                 continue
@@ -625,8 +660,8 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
         return self
 
     def __next__(self):
-        term, coefficient = next(self._iter)
-        return self.__class__(term=term, coefficient=coefficient)
+        term, coeff = next(self._iter)
+        return term, coeff
 
     def isclose(self, other, tol=EQ_TOLERANCE):
         """Check if other (SymbolicOperator) is close to self.

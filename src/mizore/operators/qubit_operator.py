@@ -122,6 +122,13 @@ class QubitOperator(SymbolicOperator):
         return True
 
     ##### mizore modification
+    @property
+    def n_qubit(self):
+        return self.n_site
+
+    @n_qubit.setter
+    def n_qubit(self, value):
+        self.n_site = value
 
     def qset_op_weight_omit_const(self):
         for op_tuple, weight in self.terms.items():
@@ -168,12 +175,6 @@ class QubitOperator(SymbolicOperator):
         if len(op_tuples) != 1:
             raise Exception("There are more than one terms in" + str(op_tuples))
         return op_tuples[0]
-
-    @classmethod
-    def from_terms_dict(cls, terms):
-        op = QubitOperator()
-        op.terms = terms
-        return op
 
     def replica(self):
         return deepcopy(self)
