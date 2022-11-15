@@ -121,7 +121,17 @@ class BackendState:
             sampled_qsets = [number_to_qset(number) for number in sampled_num_for_qsets]
         return sampled_qsets
 
-    def sample_pauli_measure_by_pauliword_nums(self, pword, n_shot, seed=None):
+    def sample_pauli_measure_by_coprime_pword(self, pword, n_shot, seed=None):
+        """
+        Args:
+            pword: The pauliword to measure, in the form of iterable coprime numbers
+            n_shot: Number of shots
+            seed: seed for RNG
+
+        Returns: A list of lists. The content of sublists has the same absolute value as pword.
+                    The result is represented by the signs.
+
+        """
         state = self.copy()
         # Change basis
         for i in range(len(pword)):
@@ -134,10 +144,10 @@ class BackendState:
             seed = int(time.time())
         sampled_num_for_qsets = state.qulacs_state.sampling(n_shot, int((seed + self.seed_shift * 13) % 10000000))
         self.seed_shift += 1
-        return [number_to_res_list(number, pword) for number in sampled_num_for_qsets]
+        return [number_to_res_list_in_flipped_signs(number, pword) for number in sampled_num_for_qsets]
 
 
-def number_to_res_list(number, pword):
+def number_to_res_list_in_flipped_signs(number, pword):
     res = list(pword)
     if number == 0:
         return res
