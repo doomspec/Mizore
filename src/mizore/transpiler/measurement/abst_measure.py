@@ -18,6 +18,7 @@ class MeasureImpl:
         pass
 
     def get_pauliwords_dense(self) -> Dict[Tuple, int]:
+        assert False
         pauliwords = self.get_pauliwords()
         occur_dict = {pauliword: 0 for pauliword in pauliwords}
         for pauliword in pauliwords:
@@ -28,9 +29,11 @@ class MeasureImpl:
         pass
 
     def get_result(self, one_shot_estimations):
+        assert False
         return sum(one_shot_estimations) / len(one_shot_estimations) + self.constant
 
     def estimate_by_state(self, state: BackendState):
+        assert False
         occur_dict = self.get_pauliwords_dense()
         one_shot_estimations = []
         i = 0
@@ -48,7 +51,7 @@ class MeasureImpl:
         for i in range_:
             observed_mean = self.estimate_by_state(state)
             observed_means.append(observed_mean)
-        var_experiment = np.var(observed_means)
+        var_experiment = np.var(observed_means, ddof=1)
         mean_experiment = np.mean(observed_means)
         return mean_experiment, var_experiment
 

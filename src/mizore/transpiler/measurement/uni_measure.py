@@ -72,7 +72,7 @@ class UniversalMeasureImpl(MeasureImpl):
             pword_counts = Counter(pwords_tuples)
             res_list = []
             for pword_tuple, n_shot in pword_counts.items():
-                res = state.sample_pauli_measure_by_pauliword_nums(pword_tuple, n_shot, seed=time.time_ns())
+                res = state.sample_pauli_measure_by_coprime_pword(pword_tuple, n_shot, seed=time.time_ns())
                 res_list.append(xnp.array(res))
             measure_res_list = xnp.concatenate(res_list, axis=0)
 
