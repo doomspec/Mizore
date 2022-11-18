@@ -8,3 +8,4 @@ sympy==1.11.1
 tequila==1.1.1
 tqdm==4.64.1
 Qulacs==0.3.1
+wget==3.2

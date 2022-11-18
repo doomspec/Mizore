@@ -87,7 +87,7 @@ def train_model(n_head, hamil, batch_size, n_step=2000):
 
     # https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html#torch.nn.parallel.DistributedDataParallel
     print("Let's use", torch.cuda.device_count(), "GPUs!")
-    #model = nn.DataParallel(model).to(device)
+    model = nn.DataParallel(model).to(device)
 
     #rank = 0
     #torch.distributed.init_process_group(backend='nccl', rank=rank, world_size=4)
@@ -98,14 +98,15 @@ def train_model(n_head, hamil, batch_size, n_step=2000):
 
     n_epoch = 0
     batch_n = 0
+    loss_for_epoch = 0
+    loss_in_epoch = []
     with tqdm(range(n_step), ncols=100) as pbar:
         for step in pbar:
             optimizer.zero_grad()
             # heads, head_ratios = model()
             if n_epoch % 30 == 0:
-                total_loss = torch.sum(model(pauli_tensor, coeffs)).cpu()
-                #print(total_loss)
-                pbar.set_description('Var: {:.6f}'.format(total_loss * (1 - 1 / (2 ** n_qubit + 1))))
+                #total_loss = torch.sum(model(pauli_tensor, coeffs)).cpu()
+                pbar.set_description('Var: {:.6f}'.format(loss_for_epoch * (1 - 1 / (2 ** n_qubit + 1))))
             if n_epoch % 5 == 0:
                 randperm = torch.randperm(n_pauliwords)
                 pauli_tensor = pauli_tensor[randperm, :]
@@ -117,21 +118,24 @@ def train_model(n_head, hamil, batch_size, n_step=2000):
             loss_val = model(batch_pauli_tensor, batch_coeffs)
             loss_val = torch.sum(loss_val)
             #print(loss_val.device)
+            loss_in_epoch.append(loss_val.cpu())
             loss_val.backward()
             optimizer.step()
             if batch_n >= n_pauliwords:
                 batch_n = 0
                 n_epoch += 1
+                loss_for_epoch = sum(loss_in_epoch)
+                loss_in_epoch = []
 
 
 if __name__ == '__main__':
     from mizore.testing.hamil import get_test_hamil
-    mol_name = "C2H2_24_BK"
+    mol_name = "NH3_30_BK"
     # mol_name = "LiH_12_BK"
     # jax.config.update('jax_platform_name', 'cuda')
-    n_head = 3000
+    n_head = 1000
     hamil, _ = get_test_hamil("mol", mol_name).remove_constant()
     print("Hamiltonian contain {} terms".format(len(hamil.terms)))
     n_qubit = hamil.n_qubit
 
-    train_model(n_head, hamil, 2200, n_step=100000)
+    train_model(n_head, hamil, 10000, n_step=100000)
