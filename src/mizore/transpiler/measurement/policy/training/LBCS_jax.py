@@ -29,7 +29,7 @@ def average_var(heads, head_ratios, pword_tensor_no_zero, coeffs):
 
 @jax.jit
 def loss(params, pword_batch, pword_coeff_batch):
-    heads = softplus(params["heads"])
+    heads = softplus(params["heads"] * 10) * 10
     heads_denom = 1.0 / jnp.sum(heads, axis=2)
     heads = jnp.einsum("iq, iqp -> iqp", heads_denom, heads)
     ratios = softplus(params["head_ratios"])
@@ -120,7 +120,7 @@ def get_one_by_one_grad_modifier(n_head, n_qubit):
     return one_by_one_grad_modifier
 
 
-if __name__ == '__main__2':
+if __name__ == '__main__':
     from mizore.testing.hamil import get_test_hamil
 
     # jax.config.update('jax_platform_name', 'cuda')
@@ -129,16 +129,25 @@ if __name__ == '__main__2':
     n_qubit = hamil.n_qubit
     ogm = OGM_policy_maker(hamil, hamil.n_qubit, len(hamil.terms))
     init_n_head = len(ogm.heads_tensor)
-    assert init_n_head < n_head
+    print(f"OGM produces {init_n_head} heads!")
     rng_key = jax.random.PRNGKey(123)
-    init_params = {
-        "head_ratios": jnp.concatenate([10 * ogm.heads_ratio, jax.random.uniform(rng_key, (n_head - init_n_head,))]),
-        "heads": jnp.concatenate(
-            [ogm.heads_tensor, jax.random.uniform(rng_key, (n_head - init_n_head, n_qubit, 3), minval=5, maxval=10)]),
-    }
-    generate_multi_headed_LBCS_policy(hamil, hamil.n_qubit, n_head, batch_size=300, init_params=init_params, )
+    if init_n_head <= n_head:
+        init_params = {
+            "head_ratios": jnp.concatenate(
+                [10 * ogm.heads_ratio, jax.random.uniform(rng_key, (n_head - init_n_head,))]),
+            "heads": jnp.concatenate(
+                [ogm.heads_tensor,
+                 jax.random.uniform(rng_key, (n_head - init_n_head, n_qubit, 3), minval=5, maxval=10)]),
+        }
+    else:
+        print(f"Use only {n_head} heads")
+        init_params = {
+            "head_ratios": 10 * ogm.heads_ratio[:n_head],
+            "heads": 10 * ogm.heads_tensor[:n_head],
+        }
+    generate_multi_headed_LBCS_policy(hamil, hamil.n_qubit, n_head, batch_size=320, init_params=init_params, )
 
-if __name__ == '__main__':
+if __name__ == '__main__1':
     from mizore.testing.hamil import get_test_hamil
 
     # jax.config.update('jax_platform_name', 'cuda')
