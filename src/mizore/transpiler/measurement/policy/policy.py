@@ -86,7 +86,8 @@ class UniversalPolicy:
         overlap_dict = self.get_children_overlap()
         var = 0.0
         for pword, coeff in self._hamil.terms.items():
-            var += coeff ** 2 * (1 / overlap_dict[pword] - 1 / (2 ** len(pword) + 1))
+            var += coeff ** 2 * (1 / overlap_dict[pword])
+        var *= 1 - 1 / (2 ** self._hamil.n_qubit + 1)
         return var
 
     def generate_pwords(self, n_shot, seed):

@@ -1,14 +1,20 @@
+import time
 from itertools import chain
 from typing import List, Set
 import numpy as np
+from jax._src.nn.functions import softplus
+
 from mizore.operators import QubitOperator
 from mizore.transpiler.measurement.grouping_utils.qwc import is_qwc, get_covering_pauliword, qwc_pword_multiply
 from mizore.transpiler.measurement.policy.policy import UniversalPolicy, get_heads_tensor_from_pwords
 
 
-def OGM_policy_maker(hamil: QubitOperator, n_qubit, n_term_cutoff=-1):
+def OGM_policy_maker(hamil: QubitOperator, n_term_cutoff=-1, optimize=False):
+    n_qubit = hamil.n_qubit
     hamil, constant = hamil.remove_constant()
     assert constant == 0.0
+
+    start_time = time.time()
 
     covering_pwords = []
     hamil_terms = {k: abs(v) for k, v in hamil.terms.items()}
@@ -44,4 +50,52 @@ def OGM_policy_maker(hamil: QubitOperator, n_qubit, n_term_cutoff=-1):
     # return GeneralGroupingInfo(group_mapping, ranked_pwords, covering_pwords, initial_probs, abs_coeffs)
     heads_tensor = get_heads_tensor_from_pwords(covering_pwords, n_qubit)
     heads_children = [list(group) for group in groups]
-    return UniversalPolicy(heads_tensor, initial_probs, heads_children, hamil, n_qubit)
+
+    policy = UniversalPolicy(heads_tensor, initial_probs, heads_children, hamil, n_qubit)
+
+    time_used = time.time() - start_time
+
+    if not optimize:
+        return policy
+
+    from mizore.transpiler.measurement.policy.training.LBCS_jax import get_operator_tensor, get_no_zero_pauliwords, \
+        var_on_mixed_state
+    import jax.numpy as jnp
+    import jax
+    from tqdm import trange
+
+    pauli_tensor, coeffs = get_operator_tensor(hamil, n_qubit)
+    pauli_tensor = get_no_zero_pauliwords(pauli_tensor)
+
+    # print(heads_tensor)
+    def var_by_ratio(param_ratios, pword_batch, pword_coeff_batch):
+        ratios = softplus(param_ratios * 10) / 10
+        ratios = ratios / jnp.sum(ratios)
+        return var_on_mixed_state(heads_tensor, ratios, pword_batch, pword_coeff_batch)
+
+    def loss(param_ratios):
+        return var_by_ratio(param_ratios, pauli_tensor, coeffs) * (1 - 1 / (2 ** n_qubit + 1))
+
+    obj = jax.jit(jax.value_and_grad(loss))
+
+    lr = 1e-3
+    grad_cutoff = 1e-2
+    param = initial_probs * 10
+
+    init_var, _ = obj(param)
+    print("init_var", init_var)
+    start_time = time.time()
+
+    for step in trange(100000):
+        value, grad = obj(param)
+        param -= grad * lr
+        if jnp.linalg.norm(grad) < grad_cutoff * init_var:
+            print("jnp.linalg.norm(grad) < grad_cutoff")
+            break
+        if time.time() - start_time > time_used * 100:
+            pass
+
+    ratios = softplus(param * 10) / 10
+    ratios = ratios / jnp.sum(ratios)
+
+    return UniversalPolicy(heads_tensor, np.array(ratios), heads_children, hamil, n_qubit)

@@ -95,9 +95,10 @@ def average_var_by_list_of_pwords(ob, pwords_in_tensor):
     var = 0.0
     for i in range(len(children)):
         var += (ob.terms[children[i]] ** 2) * (1 / children_cover_count[i])
-
     return var
 
+def average_var_coeff_by_list_of_pwords(ob, pwords_in_tensor):
+    return average_var_by_list_of_pwords(ob, pwords_in_tensor) * len(pwords_in_tensor)
 
 if __name__ == '__main__':
     get_totally_random_measure_res(np.array([3, 2, 1, 3, 3]), 10, 3)

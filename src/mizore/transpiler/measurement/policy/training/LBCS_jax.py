@@ -21,7 +21,7 @@ def get_head_coverage(heads, head_ratios, pword_tensor_no_zero):
     return coverage
 
 
-def average_var(heads, head_ratios, pword_tensor_no_zero, coeffs):
+def var_on_mixed_state(heads, head_ratios, pword_tensor_no_zero, coeffs):
     coverage = get_head_coverage(heads, head_ratios, pword_tensor_no_zero)
     var = jnp.sum(1.0 / coverage * (coeffs ** 2))
     return var
@@ -36,7 +36,7 @@ def loss(params, pword_batch, pword_coeff_batch):
     ratios = ratios / jnp.sum(ratios)
     # print(jnp.sum(ratios))
     # print(jnp.sum(heads, axis=2))
-    return average_var(heads, ratios, pword_batch, pword_coeff_batch)
+    return var_on_mixed_state(heads, ratios, pword_batch, pword_coeff_batch)
 
 
 def bilevel_grad_modifier(grads, n_epoch):

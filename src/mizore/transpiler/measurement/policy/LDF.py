@@ -69,7 +69,8 @@ def get_qwc_cliques_by_LDF(hamil: QubitOperator) -> List[Set[PauliTuple]]:
     return cliques
 
 
-def LDF_policy_maker(hamil: QubitOperator, n_qubit):
+def LDF_policy_maker(hamil: QubitOperator):
+    n_qubit = hamil.n_qubit
     cliques = get_qwc_cliques_by_LDF(hamil)
     probs = get_prob_from_groupings(cliques, hamil)
     heads = [get_covering_pauliword(clique) for clique in cliques]

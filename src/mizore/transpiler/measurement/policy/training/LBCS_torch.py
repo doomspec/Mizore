@@ -182,7 +182,7 @@ if __name__ == '__main__':
     # mol_name = "NH3_30_BK"
     mol_name = "LiH_12_BK"
     # jax.config.update('jax_platform_name', 'cuda')
-    n_head = 600
+    n_head = 300
     hamil, _ = get_test_hamil("mol", mol_name).remove_constant()
     print("Hamiltonian contain {} terms".format(len(hamil.terms)))
     n_qubit = hamil.n_qubit
