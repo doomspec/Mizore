@@ -110,10 +110,10 @@ def train_model(n_head, hamil, batch_size, n_step=2000):
     loss_for_epoch = 0
     loss_in_epoch = []
 
-    grad_mask = torch.zeros((n_head,))
+    grad_mask = torch.zeros((n_head,)).to(device)
     active_index = 0
 
-    one_by_one = True
+    one_by_one = False
     normalize_grad = True
     with tqdm(range(n_step), ncols=100) as pbar:
         for step in pbar:
@@ -174,7 +174,7 @@ def train_model(n_head, hamil, batch_size, n_step=2000):
                 n_epoch += 1
                 loss_for_epoch = sum(loss_in_epoch)
                 loss_in_epoch = []
-
+    
 
 if __name__ == '__main__':
     from mizore.testing.hamil import get_test_hamil
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     # mol_name = "NH3_30_BK"
     mol_name = "LiH_12_BK"
     # jax.config.update('jax_platform_name', 'cuda')
-    n_head = 600
+    n_head = 300
     hamil, _ = get_test_hamil("mol", mol_name).remove_constant()
     print("Hamiltonian contain {} terms".format(len(hamil.terms)))
     n_qubit = hamil.n_qubit

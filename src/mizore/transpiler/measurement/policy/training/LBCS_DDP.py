@@ -85,7 +85,7 @@ class LargeLBCS(nn.Module):
 
 # def train_model(gpu_num, n_head, mol_name, batch_size, n_step=2000):
 def train_model(gpu_num, args):
-    rank = args.nr * args.gpu + gpu_num
+    rank = args.nr * args.gpus + gpu_num
     torch.cuda.set_device(gpu_num)
 
     dist.init_process_group(
@@ -106,7 +106,7 @@ def train_model(gpu_num, args):
 
     train_loader = torch.utils.data.DataLoader(dataset=dset,
                                                batch_size=args.batch_size,
-                                               shuffle=True,
+                                               shuffle=False,
                                                num_workers=0,
                                                pin_memory=True,
                                                sampler=train_sampler)
@@ -138,8 +138,8 @@ def train_model(gpu_num, args):
             epoch_loss = 0
             for i, batch in enumerate(train_loader):
                 optimizer.zero_grad()
-                pwords = batch["pwords"]
-                coeffs = batch["coeffs"]
+                pwords = batch["pword"]
+                coeffs = batch["coeff"]
                 # heads, head_ratios = model()
 
                 batch_loss_val = model(pwords, coeffs)
@@ -196,14 +196,14 @@ if __name__ == '__main__':
                         help='ranking within the nodes')
     parser.add_argument('-batch_size', '--batch_size', default=128, type=int)
     parser.add_argument('-n_head', '--n_head', default=300, type=int)
-    parser.add_argument('--epochs', default=2, type=int, 
+    parser.add_argument('--epochs', default=50000, type=int, 
                         metavar='N',
                         help='number of total epochs to run')
     args = parser.parse_args()
 
     args.world_size = args.gpus * args.nodes
-    os.environ['MASTER_ADDR'] = '192.168.1.3'
-    os.environ['MASTER_PORT'] = '8888'
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12345'
     args.mol_name = "LiH_12_BK"
     # mp.spawn(train, nprocs=args.gpus, args=(args,))
     
@@ -212,3 +212,6 @@ if __name__ == '__main__':
     
     # train_model(n_head, hamil, 630 // 3 + 1, n_step=200000)
     mp.spawn(train_model, nprocs=args.gpus, args=(args,))
+
+    # run script
+    # python3 LBCS_DDP.py -n 1 -g 1 -nr 0 
