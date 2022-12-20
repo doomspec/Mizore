@@ -1,3 +1,4 @@
+import math
 import time
 from itertools import chain
 from typing import List, Set
@@ -85,15 +86,18 @@ def OGM_policy_maker(hamil: QubitOperator, n_term_cutoff=-1, optimize=False):
     init_var, _ = obj(param)
     print("init_var", init_var)
     start_time = time.time()
-
+    min_var = math.inf
+    stop_count = 0
     for step in trange(100000):
         value, grad = obj(param)
         param -= grad * lr
-        if jnp.linalg.norm(grad) < grad_cutoff * init_var:
-            print("jnp.linalg.norm(grad) < grad_cutoff")
-            break
-        if time.time() - start_time > time_used * 100:
-            pass
+        if value < min_var:
+            min_var = value
+            stop_count = 0
+        else:
+            stop_count += 1
+            if stop_count > 300:
+                break
 
     ratios = softplus(param * 10) / 10
     ratios = ratios / jnp.sum(ratios)
