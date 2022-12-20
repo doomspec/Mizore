@@ -3,14 +3,18 @@ import time
 from itertools import chain
 from typing import List, Set
 import numpy as np
+import optax
 from jax._src.nn.functions import softplus
+from tqdm import tqdm
 
 from mizore.operators import QubitOperator
 from mizore.transpiler.measurement.grouping_utils.qwc import is_qwc, get_covering_pauliword, qwc_pword_multiply
 from mizore.transpiler.measurement.policy.policy import UniversalPolicy, get_heads_tensor_from_pwords
+from mizore.transpiler.measurement.policy.training.LBCS_jax import var_on_mixed_state
+from mizore.transpiler.measurement.policy.utils_for_tensor import get_operator_tensor, get_no_zero_pauliwords
 
 
-def OGM_policy_maker(hamil: QubitOperator, n_term_cutoff=-1, optimize=False):
+def OGM_policy_maker(hamil: QubitOperator, n_term_cutoff=-1, optimize=None):
     n_qubit = hamil.n_qubit
     hamil, constant = hamil.remove_constant()
     assert constant == 0.0
@@ -56,50 +60,84 @@ def OGM_policy_maker(hamil: QubitOperator, n_term_cutoff=-1, optimize=False):
 
     time_used = time.time() - start_time
 
-    if not optimize:
+    if optimize is None:
         return policy
-
-    from mizore.transpiler.measurement.policy.training.LBCS_jax import get_operator_tensor, get_no_zero_pauliwords, \
-        var_on_mixed_state
-    import jax.numpy as jnp
-    import jax
-    from tqdm import trange
 
     pauli_tensor, coeffs = get_operator_tensor(hamil, n_qubit)
     pauli_tensor = get_no_zero_pauliwords(pauli_tensor)
 
-    # print(heads_tensor)
-    def var_by_ratio(param_ratios, pword_batch, pword_coeff_batch):
-        ratios = softplus(param_ratios * 10) / 10
-        ratios = ratios / jnp.sum(ratios)
-        return var_on_mixed_state(heads_tensor, ratios, pword_batch, pword_coeff_batch)
-
-    def loss(param_ratios):
-        return var_by_ratio(param_ratios, pauli_tensor, coeffs) * (1 - 1 / (2 ** n_qubit + 1))
-
-    obj = jax.jit(jax.value_and_grad(loss))
-
-    lr = 1e-3
-    grad_cutoff = 1e-2
-    param = initial_probs * 10
-
-    init_var, _ = obj(param)
-    print("init_var", init_var)
-    start_time = time.time()
-    min_var = math.inf
-    stop_count = 0
-    for step in trange(100000):
-        value, grad = obj(param)
-        param -= grad * lr
-        if value < min_var:
-            min_var = value
-            stop_count = 0
-        else:
-            stop_count += 1
-            if stop_count > 300:
-                break
-
-    ratios = softplus(param * 10) / 10
-    ratios = ratios / jnp.sum(ratios)
+    ratios = optimize_ratios(heads_tensor, initial_probs, pauli_tensor, coeffs, optimize)
 
     return UniversalPolicy(heads_tensor, np.array(ratios), heads_children, hamil, n_qubit)
+
+
+import jax.numpy as jnp
+import jax
+
+
+def get_ratio_from_param(ratio_param):
+    ratios = softplus(ratio_param * 20)
+    return ratios / jnp.sum(ratios)
+
+
+def loss(params, heads, pword_batch, pword_coeff_batch):
+    ratios = get_ratio_from_param(params["head_ratios"])
+    return var_on_mixed_state(heads, ratios, pword_batch, pword_coeff_batch)
+
+
+def optimize_ratios(heads, head_ratios, pauli_tensor, coeffs, args):
+    n_step = args.__dict__.get("n_step", 500000)
+    n_step_to_stop = args.__dict__.get("n_step_to_stop", 300)
+    batch_size = args.__dict__.get("batch_size", 300)
+    n_head = len(head_ratios)
+    n_pauliwords = len(coeffs)
+
+    rng_key = jax.random.PRNGKey(123)
+
+    params = {
+        "head_ratios": head_ratios
+    }
+
+    optimizer = optax.adam(learning_rate=0.005)
+    opt_state = optimizer.init(params)
+
+    @jax.jit
+    def step(params, opt_state, pword_batch, pword_coeff_batch):
+        loss_value, grads = jax.value_and_grad(loss)(params, heads, pword_batch, pword_coeff_batch)
+        updates, opt_state = optimizer.update(grads, opt_state, params)
+        params = optax.apply_updates(params, updates)
+        return params, opt_state, loss_value
+
+    n_epoch = 0
+    batch_n = 0
+    loss_in_epoch = []
+    min_var = math.inf
+    stop_count = 0
+    with tqdm(range(n_step), ncols=100) as pbar:
+        for i in pbar:
+            pword_batch = pauli_tensor[batch_n:batch_n + batch_size]
+            pword_coeff_batch = coeffs[batch_n:batch_n + batch_size]
+            params, opt_state, loss_value = step(params, opt_state, pword_batch, pword_coeff_batch)
+            batch_n += batch_size
+            loss_in_epoch.append(float(loss_value))
+            if batch_n >= n_pauliwords:
+                batch_n = 0
+                n_epoch += 1
+                if n_epoch % 5 == 0:
+                    rng_key, shuffle_key = jax.random.split(rng_key)
+                    pauli_tensor = jax.random.permutation(shuffle_key, pauli_tensor)
+                    coeffs = jax.random.permutation(shuffle_key, coeffs)
+
+                var = sum(loss_in_epoch)
+                pbar.set_description('Loss: {:.6f}, Epoch: {}'.format(var, n_epoch))
+                loss_in_epoch = []
+                if var < min_var:
+                    min_var = var
+                    stop_count = 0
+                else:
+                    stop_count += 1
+                    if stop_count == n_step_to_stop:
+                        print("n_step_to_stop", n_step_to_stop, "reached")
+                        break
+
+    return get_ratio_from_param(params["head_ratios"])

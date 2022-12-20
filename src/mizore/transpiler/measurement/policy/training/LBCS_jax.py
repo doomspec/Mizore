@@ -4,7 +4,7 @@ from mizore.operators import QubitOperator
 import jax.numpy as jnp
 from jax.nn import softplus
 
-from mizore.transpiler.measurement.policy.OGM import OGM_policy_maker
+
 from mizore.transpiler.measurement.policy.policy import UniversalPolicy
 from mizore.transpiler.measurement.policy.utils_for_tensor import get_pword_tensor, get_operator_tensor, \
     get_no_zero_pauliwords
@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
 if __name__ == '__main__1':
     from mizore.testing.hamil import get_test_hamil
-
+    from mizore.transpiler.measurement.policy.OGM import OGM_policy_maker
     # jax.config.update('jax_platform_name', 'cuda')
     n_head = 300
     hamil, _ = get_test_hamil("mol", "LiH_12_BK").remove_constant()
