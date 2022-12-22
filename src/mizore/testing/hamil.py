@@ -38,11 +38,12 @@ def get_test_hamil(category, name, with_constant=False, try_download=True):
     for pword, coeff in op:
         op.terms[pword] = float(coeff.real)
         assert abs(coeff.imag) < 1e-7
-    if not with_constant:
+    if not with_constant and () in op.terms:
         del op.terms[()]
+    op.compress()
     return op
 
 
 if __name__ == '__main__':
-    op = get_test_hamil("mol", "NH3_30_BK")
+    op = get_test_hamil("mol", "H2O_26_BK")
     print(len(op.terms))
