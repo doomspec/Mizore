@@ -87,10 +87,12 @@ def loss(params, heads, pword_batch, pword_coeff_batch):
 
 def optimize_ratios(heads, head_ratios, pauli_tensor, coeffs, args):
     n_step = args.__dict__.get("n_step", 500000)
-    n_step_to_stop = args.__dict__.get("n_step_to_stop", 300)
-    batch_size = args.__dict__.get("batch_size", 300)
+    n_step_to_stop = args.__dict__.get("n_step_to_stop", 200)
+    batch_size_bound = args.__dict__.get("batch_size_bound", 400)
     n_head = len(head_ratios)
     n_pauliwords = len(coeffs)
+    batch_size = n_pauliwords // math.ceil(n_pauliwords / batch_size_bound) + 1
+    print("batch_size", batch_size)
 
     rng_key = jax.random.PRNGKey(123)
 
@@ -131,9 +133,9 @@ def optimize_ratios(heads, head_ratios, pauli_tensor, coeffs, args):
                 var = sum(loss_in_epoch)
                 pbar.set_description('Loss: {:.6f}, Epoch: {}'.format(var, n_epoch))
                 loss_in_epoch = []
-                if var < min_var:
-                    min_var = var
+                if min_var - var > var * 1e-3:
                     stop_count = 0
+                    min_var = var
                 else:
                     stop_count += 1
                     if stop_count == n_step_to_stop:
