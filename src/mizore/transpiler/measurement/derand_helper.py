@@ -1,4 +1,5 @@
 import math, random
+from typing import List
 
 import jax
 
@@ -11,7 +12,7 @@ if use_jax:
 else:
     import numpy as np
 
-use_vectorize = False
+use_vectorize = True
 
 
 class Term:
@@ -36,7 +37,7 @@ def to_p_string(tuples, nqubit):
     return "".join(results)
 
 
-def to_terms(operator: QubitOperator, nqubit) -> [Term]:
+def to_terms(operator: QubitOperator, nqubit) -> List[Term]:
     results = []
     for k, v in operator.terms.items():
         results.append(Term(v, to_p_string(k, nqubit)))
@@ -107,7 +108,7 @@ class DerandomizationMeasurementBuilder:
             V = cost_config.eta / 2 * hit_counts
             if_nqubit_smaller_than_maches_needed = np.heaviside(cost_config.nqubit - not_matched_counts, 1)
             V += if_nqubit_smaller_than_maches_needed * (- np.log(1 - cost_config.nu / (3 ** not_matched_counts)))
-            cost_val = np.sum(np.exp(-V / cost_config.weights))
+            cost_val = np.sum(np.exp(-V / np.array(self.weights)))
             return cost_val
 
         if use_jax:

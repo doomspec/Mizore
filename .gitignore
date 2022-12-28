@@ -1,3 +1,4 @@
 /test/.pytest_cache/
 *.pyc
 /projects
+src/mizore/testing/hamil

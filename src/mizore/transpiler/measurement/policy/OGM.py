@@ -125,7 +125,7 @@ def optimize_ratios(heads, head_ratios, pauli_tensor, coeffs, args):
             if batch_n >= n_pauliwords:
                 batch_n = 0
                 n_epoch += 1
-                if n_epoch % 5 == 0:
+                if n_epoch % 1 == 0:
                     rng_key, shuffle_key = jax.random.split(rng_key)
                     pauli_tensor = jax.random.permutation(shuffle_key, pauli_tensor)
                     coeffs = jax.random.permutation(shuffle_key, coeffs)

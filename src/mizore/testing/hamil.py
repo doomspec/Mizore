@@ -1,4 +1,5 @@
 from mizore.operators import QubitOperator
+from pathlib import Path
 import os
 
 this_folder_path = os.path.dirname(os.path.abspath(__file__))
@@ -9,6 +10,9 @@ Local_Hamil_Repo_Root = this_folder_path + "/hamil"
 def download_hamil(category, name):
     import wget
     try:
+        folder_path = Path("{}/{}/{}".format(Local_Hamil_Repo_Root, category, name)).parent
+        folder_path.mkdir(parents=True, exist_ok=True)
+        print(name)
         wget.download(URL_FORM.format(category, name), "{}/{}/{}.op".format(Local_Hamil_Repo_Root, category, name))
     except Exception as e:
         print("Failed to Retrieve Hamiltonian from remote.\nError msg: " + str(e))
