@@ -11,6 +11,7 @@ if use_jax:
     import jax.numpy as np
 else:
     import numpy as np
+    np.random.seed(0)
 
 use_vectorize = True
 
@@ -124,6 +125,7 @@ class DerandomizationMeasurementBuilder:
         hit_counts = np.array([0] * len(observables))
         results = []
         cost_fun = self.get_cost_function()
+        self.weights = np.array(self.weights)
         for _ in tqdm.trange(nshot):
             # A single round of parallel measurement over "system_size" number of qubits
             not_matched_counts = np.sum(np.sign(observables), axis=-1)  # np.array([len(P) for P in observables])
@@ -134,6 +136,7 @@ class DerandomizationMeasurementBuilder:
                 # cost_of_outcomes = dict([(3 * 5, 0), (2 * 5, 0), (2 * 3, 0)])
                 candidate_matched_counts_for_best_pauli = None
                 ps = [3 * 5, 2 * 5, 2 * 3]
+                np.random.shuffle(ps)
                 # random.shuffle(ps)
                 best_pauli = -1
                 min_cost = np.inf
@@ -155,6 +158,7 @@ class DerandomizationMeasurementBuilder:
                 measurement.append(copauli_char_map[best_pauli])
             results.append(measurement)
             hit_counts += 1 - np.sign(np.abs(not_matched_counts))
+            
         return results
 
     def build_original(self, nshot):
@@ -216,6 +220,7 @@ class DerandomizationMeasurementBuilder:
                     cost_of_outcomes[pauli_candidate] = cost.value(hit_counts,
                                                                    candidate_matched_counts)
                 ps = ["X", "Y", "Z"]
+                np.random.shuffle(ps)
                 #random.shuffle(ps)
                 for pauli_candidate in ps:
                     if min(cost_of_outcomes.values()) < cost_of_outcomes[pauli_candidate]:
