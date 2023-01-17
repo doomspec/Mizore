@@ -1,15 +1,9 @@
 import math
-from typing import List
-
-import jax
-
 from mizore.operators import QubitOperator
 from tqdm import tqdm
 
-
 import numpy as np
 np.random.seed(0)
-
 
 pauli_int_map = {
     "I": 0,
@@ -24,32 +18,20 @@ copauli_char_map = {
     2 * 3: "Z"
 }
 
-class Term:
-    def __init__(self, amp, p_string):
-        self.amp = amp
-        self.p_string = p_string
-
-    def __repr__(self) -> str:
-        return "Term({}, {})".format(self.amp, self.p_string)
+def pword_to_array(pword, n_qubit):
+    array = [0] * n_qubit
+    for i, p in pword:
+        array[i] = pauli_int_map[p]
+    return np.array(array)
 
 
-def to_p_string(tuples, nqubit):
-    dict = {}
-    for t in tuples:
-        dict[t[0]] = t[1]
-    results = []
-    for j in range(nqubit):
-        if j not in dict:
-            results.append("I")
-        else:
-            results.append(dict[j])
-    return "".join(results)
-
-def to_terms(operator: QubitOperator, nqubit) -> List[Term]:
-    results = []
-    for k, v in operator.terms.items():
-        results.append(Term(v, to_p_string(k, nqubit)))
-    return results
+def ops_to_arrays(ops, n_qubit):
+    weights = []
+    pwords = []
+    for pword, coeff in ops.terms.items():
+        weights.append(coeff)
+        pwords.append(pword_to_array(pword, n_qubit))
+    return np.stack(pwords), np.array(weights)
 
 class DerandomizationMeasurementNumPy:
     def __init__(self, operator: QubitOperator, nqubit, use_weight=True):
@@ -59,17 +41,14 @@ class DerandomizationMeasurementNumPy:
             nqubit: num of qubits
             use_weight: whether we use the values of the coefficients in the Hamiltonian
         """
-        self.terms = to_terms(operator, nqubit)
+        self.ops = operator
         self.nqubit = nqubit
-        max_weight = 0
-        for t in self.terms:
-            a = abs(t.amp)
-            if a > max_weight:
-                max_weight = a
+        self.pwords, self.weights = ops_to_arrays(operator, nqubit)
+        self.weights = np.abs(self.weights)
         if use_weight:
-            self.weights = [abs(t.amp) / max_weight for t in self.terms]
+            self.weights = self.weights / np.max(self.weights)  # [abs(t.amp) / max_weight for t in self.terms]
         else:
-            self.weights = [1 for _ in range(len(self.terms))]
+            self.weights = np.array([1 for _ in range(len(self.terms))])
 
     def build(self, min_nshot_a_term):
         return self.build_vectorized(min_nshot_a_term)
@@ -82,15 +61,8 @@ class DerandomizationMeasurementNumPy:
 
         Returns: an array of Pauli strings
         """
-        observables = []
-        for t in self.terms:
-            paulis = [0] * self.nqubit
-            for i, c in enumerate(t.p_string):
-                paulis[i] = pauli_int_map[c]
-            observables.append(np.array(paulis))
-        observables = np.stack(observables)
-        max_nshot = max_nshot or min_nshot_a_term*len(observables)//5
-        return self._derandomized_classical_shadow_vectorized(observables, min_nshot_a_term, max_nshot)
+        max_nshot = max_nshot or min_nshot_a_term * len(self.pwords) // 5
+        return self._derandomized_classical_shadow_vectorized(self.pwords, min_nshot_a_term, max_nshot)
 
     def get_cost_function(self):
         cost_config = DerandomizationCost(self.nqubit, self.weights, shift=0)
@@ -144,7 +116,7 @@ class DerandomizationMeasurementNumPy:
                             min_cost = cost_for_pauli
                             candidate_matched_counts_for_best_pauli = candidate_matched_counts
                     not_matched_counts = candidate_matched_counts_for_best_pauli
-                    measurement.append(copauli_char_map[best_pauli])
+                    measurement.append(best_pauli)
                 results.append(measurement)
                 hit_counts += 1 - np.sign(np.abs(not_matched_counts))
                 least_satisfied = np.min(hit_counts - np.floor(min_nshot_a_term*self.weights))
