@@ -13,6 +13,7 @@
 """The file is modified by Zijian Zhang for the Mizore project"""
 from __future__ import annotations
 import pickle
+from collections import defaultdict
 
 """SymbolicOperator is the base class for FermionOperator and QubitOperator"""
 
@@ -187,7 +188,7 @@ class SymbolicOperator(metaclass=abc.ABCMeta):
 
     @classmethod
     def from_terms_dict(cls, terms):
-        op = cls()
+        cls.__init__(op)
         op.terms = terms
         return op
 
@@ -853,6 +854,7 @@ _pauli_index_map = ["I", "X", "Y", "Z"]
 
 PauliTuple = Tuple[Tuple[int, str], ...]
 
+
 #####
 
 class QubitOperator(SymbolicOperator):
@@ -903,6 +905,9 @@ class QubitOperator(SymbolicOperator):
         during initialization is faster than multiplying a QubitOperator
         with a scalar.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     @property
     def actions(self):
@@ -972,6 +977,16 @@ class QubitOperator(SymbolicOperator):
         op = QubitOperator()
         op.terms[pauli_tuple] = 1.0
         return op
+
+    @classmethod
+    def from_pauli_tensor(cls, coeffs, pauli_tensor):
+        terms = defaultdict(lambda: 0.0)
+        for i in range(len(pauli_tensor)):
+            pword_tensor = pauli_tensor[i]
+            coeff = coeffs[i]
+            pauli_tuple = tuple((i, _pauli_index_map[p]) for i, p in enumerate(pword_tensor) if p != 0)
+            terms[pauli_tuple] += coeff
+        return QubitOperator.from_terms_dict(terms)
 
     def get_unique_op_tuple(self) -> Tuple[Tuple, complex]:
         op_tuples = list(self.terms.items())
