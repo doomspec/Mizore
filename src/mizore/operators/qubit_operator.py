@@ -1065,7 +1065,7 @@ class QubitOperator(SymbolicOperator):
         for pword, coeff in self:
             pwords.append(get_pword_one_hot_tensor(pword, n_qubit))
             coeffs.append(coeff)
-        return np.stack(pwords), np.array(coeffs)
+        return np.array(coeffs), np.stack(pwords)
 
     def get_pauli_tensor(self):
         n_qubit = self.n_qubit if self.n_qubit > 0 else self.count_n_qubit()
@@ -1074,7 +1074,7 @@ class QubitOperator(SymbolicOperator):
         for pword, coeff in self:
             pwords.append(get_pword_tensor(pword, n_qubit))
             coeffs.append(coeff)
-        return np.stack(pwords), np.array(coeffs)
+        return np.array(coeffs), np.stack(pwords)
 
 
 _pauli_to_index = {"X": 0, "Y": 1, "Z": 2}
